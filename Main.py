@@ -7,7 +7,6 @@ if __name__ == "__main__":
     start_time = time.time()
     title = 'KakiRaid'
     window = General.get_window_coordinate(title)  # x, y, w, h
-    # print(window)
     window.append(start_time)  # add start time to window parameters
     count = 0
     current_floor = 0
@@ -24,7 +23,16 @@ if __name__ == "__main__":
     while count < 200:
         temp_start_time = time.time()
         if count != 0:
-            time.sleep(80)
+            if current_floor > 500:
+                time.sleep(140)
+            elif current_floor > 400:
+                time.sleep(125)
+            elif current_floor > 300:
+                time.sleep(100)
+            elif current_floor > 200:
+                time.sleep(90)
+            else:
+                time.sleep(80)
         pyautogui.moveTo(window[0] + window[2] // 2, window[1] + window[3] // 2)
         curse_images = General.get_curse_image(window)
         curses = General.parse_curse_image(curse_images)
@@ -42,6 +50,7 @@ if __name__ == "__main__":
             print('Current Floor: ' + str(current_floor) + '\n')
     print('Quit with time out')
 
+    #  For auto-upgrading weapons
     # General.auto_legend(window, 30)
 
 # try:

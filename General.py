@@ -9,16 +9,12 @@ from sklearn.cluster import KMeans
 import os
 import imagehash
 import copy
-# import scipy.spatial.distance as dist
-# import sys
 
 
 class MapTile:
     def __init__(self, value=None, coordinate=None):
         self.value = value
         self.coordinate = coordinate
-        # self.upper = None
-        # self.lower = None
         self.children = []
 
     def add_child(self, map_tiles):
@@ -46,18 +42,18 @@ class Solution:
             partial_weight -= maptile_to_value(child.value)
 
 
-def get_window_coordinate(title):  # add an error check here?
+def get_window_coordinate(title):
     hwnd = win32gui.FindWindowEx(None, None, None, title)
-    win32gui.SetForegroundWindow(hwnd)
-    if not (hwnd == 0):
-        rect = win32gui.GetWindowRect(hwnd)
-        x = rect[0]
-        y = rect[1]
-        w = rect[2] - x
-        h = rect[3] - y
-        return [x, y, w, h]
-    else:
-        pass
+    try:
+        win32gui.SetForegroundWindow(hwnd)
+    finally:
+        if not (hwnd == 0):
+            rect = win32gui.GetWindowRect(hwnd)
+            x = rect[0]
+            y = rect[1]
+            w = rect[2] - x
+            h = rect[3] - y
+            return [x, y, w, h]
 
 
 def floor_detection(window, skip_level=150):
@@ -111,9 +107,9 @@ def failure_detect(window, count=0):
         print('Total Loot Other selected: ' + str(window[5]['Total_Loot_Other']))
         print('Total Camp selected: ' + str(window[5]['Total_Camp']))
         print('Total Ruin selected: ' + str(window[5]['Total_Ruin']))
-        elapsed_time = time.time() - window[4]
+        elapsed_time = int(time.time() - window[4])
         print('Time elapsed:')
-        print('{:02d}:{:02d}:{:02d}'.format(elapsed_time // 3600, (elapsed_time % 3600 // 60), elapsed_time % 60))
+        # print('{:02d}:{:02d}:{:02d}'.format(elapsed_time // 3600, (elapsed_time % 3600 // 60), elapsed_time % 60))
         time.sleep(99999)
         #  [1205, 723] 继续, [1412, 716] 离开
         # To be added, auto-save and re-start a new session
@@ -217,7 +213,7 @@ def select_curse(window, words_results, fail_count=0):  # select curse coordinat
                 curse_images = get_curse_image(window)
                 curses = parse_curse_image(curse_images)
                 select_curse(window, curses)
-        else:  # Not in curse page, after 8 sec, re-detect
+        else:  # Not in curse page, after 7 sec, re-detect
             pyautogui.moveTo(window[0] + window[2]//2, window[1] + window[3]//2)
             time.sleep(7)
             fail_count += 1
@@ -229,12 +225,12 @@ def select_curse(window, words_results, fail_count=0):  # select curse coordinat
                 failure_detect(window)
     except:
         time.sleep(7)
-        print("Unknown Error Occurred, Refreshing..")  # add limit
+        print("Unknown Error Occurred, Refreshing..")
         pyautogui.click(x=window[0] + 1356, y=window[1] + 184)
         pyautogui.moveTo(window[0] + window[2] // 2, window[1] + window[3] // 2)
         curse_images = get_curse_image(window)
         curses = parse_curse_image(curse_images)
-        fail_count += 1
+        fail_count += 1  # add fail limit
         if fail_count < 5:
             select_curse(window, curses, fail_count)
         else:
@@ -244,16 +240,16 @@ def select_curse(window, words_results, fail_count=0):  # select curse coordinat
 
 def toggle_auto_path_finding(window):
     toggle_diff = [1607-236, 810-123]
-    time.sleep(0.18)
+    time.sleep(0.2)
     pyautogui.click(x=window[0] + toggle_diff[0], y=window[1] + toggle_diff[1])
 
 
 def maptile_to_value(tile):  # Map Weight
     tile_dict = dict()
     tile_dict['start'] = 0
-    tile_dict['mystery'] = 1
+    tile_dict['mystery'] = 0
     tile_dict['shop'] = 0
-    tile_dict['resources'] = -2
+    tile_dict['resources'] = 1
     tile_dict['camp'] = 4
     tile_dict['secret'] = 1
     tile_dict['Loot_Adv'] = 3
@@ -264,13 +260,15 @@ def maptile_to_value(tile):  # Map Weight
     tile_dict['Monster_Elite'] = -999
     tile_dict['Monster_Normal'] = 3
     tile_dict['end'] = 0
-    tile_dict['unknown'] = 0
+    tile_dict['unknown'] = -3
     return tile_dict[tile]
 
 
 def map_management(window):  # window [x, y, w, h, start.time, stat(dict)]
     # toggle_auto_path_finding(window)
-    time.sleep(3)
+    time.sleep(0.25)
+    pyautogui.click(window[0] + window[2]//2, window[1] + window[3]//2, duration=0.4)
+    time.sleep(0.25)
     map_button_diff = [367-246, 889-123]
     map_coordinate = dict()
     pyautogui.moveTo(window[0] + map_button_diff[0], window[1] + map_button_diff[1], duration=0.1)
@@ -472,22 +470,6 @@ def find_route(start, end):
     result = route.path_max_weight(start, end)
     return result
 
-    # if not root:
-    #     return value_sum
-    # else:
-    #     value_sum += maptile_to_value(root.value)
-    #     return max(find_route(root.upper, value_sum, coordinate_list),
-    #                find_route(root.lower, value_sum, coordinate_list))
-        # a = find_route(root.upper, value_sum, coordinate_list)
-        # b = find_route(root.lower, value_sum, coordinate_list)
-        # if a > b:
-        #     if root.upper:
-        #         coordinate_list.append(root.upper.coordinate)
-        # else:
-        #     if root.lower:
-        #         coordinate_list.append(root.lower.coordinate)
-        # return max(a, b)
-
 
 def get_dominant_colors(image_path, clusters):
     img = cv2.imread(image_path)
@@ -502,30 +484,18 @@ def get_dominant_colors(image_path, clusters):
 def get_image_diff(image1, folder_name):
     # img_ref will be a list of images
     image_ref = ['Map/' + f for f in os.listdir('Map/' + folder_name)]
-    # im1 = cv2.imread(image1)
-    # im1_gray = cv2.cvtColor(im1, cv2.COLOR_BGR2GRAY)
-    # im1_gray = cv2.subtract(255, im1_gray)
     im1_hash = imagehash.average_hash(Image.open(image1))
     dist_min = 99999999
     selection = 0
     temp_list = list()
     for i in range(len(image_ref)):
-        # temp_im = cv2.imread(image_ref[i])
-        # temp_im_gray = cv2.cvtColor(temp_im, cv2.COLOR_BGR2GRAY)
-        # temp_im_gray = cv2.resize(temp_im_gray, (im1_gray.shape[1], im1_gray.shape[0]), interpolation=cv2.INTER_AREA)
-        # temp_im_gray = cv2.subtract(255, temp_im_gray)
         temp_im_hash = imagehash.average_hash(Image.open(image_ref[i]))
-        # dists = list()
-        # for j in range(0, len(im1_gray)):
-        #     dists.append(dist.euclidean(im1_gray[j], temp_im_gray[j]))
-        # sum_dists = sum(dists)
         sum_dists = temp_im_hash - im1_hash
         temp_list.append(sum_dists)
         if sum_dists <= dist_min:
             dist_min = sum_dists
             selection = i
     best_match = image_ref[selection].split('.')[0].split('/')[1]
-    # print(temp_list)
     return best_match
 
 
