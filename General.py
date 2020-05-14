@@ -7,8 +7,14 @@ import re
 import cv2
 from sklearn.cluster import KMeans
 import os
+import os.path
+from os import path
 import imagehash
 import copy
+import ctypes
+import configparser
+import sys
+import smtplib
 
 
 class MapTile:
@@ -23,9 +29,13 @@ class MapTile:
 
 
 class Solution:
-    def path_max_weight(self, start, end):
+    def __init__(self):
+        self.tile_dict = dict()
+        self.map_dict_to_value()
         self.max_weight = -999
-        self.max_path = []
+        self.max_path = list()
+
+    def path_max_weight(self, start, end):
         self.dfs(start, end, 0, [])
         return self.max_path
 
@@ -36,10 +46,39 @@ class Solution:
                 self.max_path = copy.deepcopy(partial_path)
         for child in start.children:
             partial_path.append(child)
-            partial_weight += maptile_to_value(child.value)
+            partial_weight += self.tile_dict[child.value]
             self.dfs(child, end, partial_weight, partial_path)
             partial_path.pop()
-            partial_weight -= maptile_to_value(child.value)
+            partial_weight -= self.tile_dict[child.value]
+
+    def map_dict_to_value(self):
+        config = configparser.ConfigParser()
+        config.read('config.ini', encoding='utf-8')
+        self.tile_dict['start'] = 0
+        self.tile_dict['shop'] = 0
+        self.tile_dict['secret'] = 1
+        self.tile_dict['mystery'] = 1
+        self.tile_dict['resource_sos'] = -500
+        self.tile_dict['resource_wood'] = -500
+        self.tile_dict['resource_ore'] = -500
+        self.tile_dict['resource_pelt'] = -500
+        self.tile_dict['resource_fish'] = -500
+        self.tile_dict['resource_food'] = -500
+        self.tile_dict['resource_herb'] = -500
+        self.tile_dict['camp'] = 500
+        self.tile_dict['loot_adv'] = 3
+        self.tile_dict['loot_curse'] = 3
+        self.tile_dict['loot_normal'] = 1
+        self.tile_dict['ruin'] = 2
+        self.tile_dict['monster_adv'] = 10
+        self.tile_dict['monster_elite'] = -999
+        self.tile_dict['monster_normal'] = 10
+        self.tile_dict['end'] = 0
+        self.tile_dict['unknown'] = -3
+        config_weight_dict = config._sections['Map_Weight']
+        for key, value in config_weight_dict.items():
+            if key in self.tile_dict.keys() and value:
+                self.tile_dict[key] = int(value)
 
 
 def get_window_coordinate(title):
@@ -56,8 +95,17 @@ def get_window_coordinate(title):
             return [x, y, w, h]
 
 
+def adjust_window(title, coordinate):
+    hwnd = win32gui.FindWindowEx(None, None, None, title)
+    try:
+        win32gui.SetForegroundWindow(hwnd)
+    finally:
+        win32gui.MoveWindow(hwnd, coordinate[0], coordinate[1], 1429, 834, True)
+
+
 def floor_detection(window, skip_level=150):
     skip_until = skip_level
+    f = window[7]
     window_ref = [235, 84]
     floor_position_1 = [867, 116]
     floor_position_2 = [1054, 176]
@@ -66,17 +114,21 @@ def floor_detection(window, skip_level=150):
     floor_image = ImageGrab.grab(bbox=(window[0]+floor_diff_1[0], window[1]+floor_diff_1[1],
                                        window[0]+floor_diff_2[0], window[1]+floor_diff_2[1]))
     floor_image.save('floor_image.jpg', 'JPEG')
+    keys = [window[6]['Baidu_API']['API_ID'], window[6]['Baidu_API']['API_KEY'], window[6]['Baidu_API']['SECRET_KEY']]
     try:
-        parsed_floor_image = baidu_ocr('floor_image.jpg')
+        parsed_floor_image = baidu_ocr('floor_image.jpg', keys)
         floor = re.findall(r"\d+", parsed_floor_image[1]['words'])
         if floor and int(floor[0]):
-            print('Current Floor: ' + floor[0] + '\n')
+            print('Current Floor: ' + floor[0] + '\n', file=f)
+            f.flush()
             return int(floor[0])
         else:
-            print('Failed to detect floor level. \n')
+            print('Failed to detect floor level. \n', file=f)
+            f.flush()
             return 0
     except:
-        print('Failed to detect floor level. \n')
+        print('Failed to detect floor level. \n', file=f)
+        f.flush()
         return 0
         # if floor and int(floor[0]) < skip_until:
         #     print('Current Floor: ' + floor[0] + ', Skipped!')
@@ -89,7 +141,7 @@ def floor_detection(window, skip_level=150):
     #     floor_detection(window, skip_level)
 
 
-def failure_detect(window, count=0):
+def failure_detect(window):
     window_ref = [235, 84]
     fail_position_1 = [1317, 672]
     fail_position_2 = [1508, 771]
@@ -98,26 +150,27 @@ def failure_detect(window, count=0):
     fail_image = ImageGrab.grab(bbox=(window[0] + fail_diff_1[0], window[1] + fail_diff_1[1],
                                        window[0] + fail_diff_2[0], window[1] + fail_diff_2[1]))
     fail_image.save('fail_image.jpg', 'JPEG')
-    parsed_fail_image = baidu_ocr('fail_image.jpg')
-    if parsed_fail_image and parsed_fail_image[0]['words'] == '离开冒险':  # issue here
-        print('Battle Failed, Quitting Program...')
-        print('Total Resource Tiles selected: ' + str(window[5]['Total_Resources']))
-        print('Total Monster Tiles selected: ' + str(window[5]['Total_Monster']))
-        print('Total Loot Curse Tiles selected: ' + str(window[5]['Total_Loot_Curse']))
-        print('Total Loot Other selected: ' + str(window[5]['Total_Loot_Other']))
-        print('Total Camp selected: ' + str(window[5]['Total_Camp']))
-        print('Total Ruin selected: ' + str(window[5]['Total_Ruin']))
+    im1_hash = imagehash.average_hash(Image.open('fail_image.jpg'))
+    im2_hash = imagehash.average_hash(Image.open('Ref\\fail_image_ref.jpg'))
+    f = window[7]
+    if abs(im1_hash - im2_hash) <= 2:
+        print('Battle Failed, Quitting Program...', file=f)
+        print('Total Resource Tiles selected: ' + str(window[5]['Total_Resources']), file=f)
+        print('Total Monster Tiles selected: ' + str(window[5]['Total_Monster']), file=f)
+        print('Total Loot Curse Tiles selected: ' + str(window[5]['Total_Loot_Curse']), file=f)
+        print('Total Loot Other selected: ' + str(window[5]['Total_Loot_Other']), file=f)
+        print('Total Camp selected: ' + str(window[5]['Total_Camp']), file=f)
+        print('Total Ruin selected: ' + str(window[5]['Total_Ruin']), file=f)
         elapsed_time = int(time.time() - window[4])
-        print('Time elapsed:')
-        # print('{:02d}:{:02d}:{:02d}'.format(elapsed_time // 3600, (elapsed_time % 3600 // 60), elapsed_time % 60))
-        time.sleep(99999)
+        print('Time elapsed:', file=f)
+        print('{:02d}:{:02d}:{:02d}'.format(elapsed_time // 3600, (elapsed_time % 3600 // 60), elapsed_time % 60),
+              file=f)
+        # ctypes.windll.user32.MessageBoxW(0, 'Battle Failed, Quitting Program..', 'Message', 0x1000)
+        time.sleep(1)
+        send_email('Kaki battle failed, quit program.')
+        sys.exit()
         #  [1205, 723] 继续, [1412, 716] 离开
-        # To be added, auto-save and re-start a new session
-    else:
-        time.sleep(8)
-        count += 1
-        if count <= 3:  # in case image detection failed
-            failure_detect(window, count)
+        # To be added, auto-save and re-start a new session?
 
 
 def get_curse_image(window):
@@ -136,46 +189,69 @@ def get_curse_image(window):
     return ['curse_img_1.jpg', 'curse_img_2.jpg', 'curse_img_3.jpg']
 
 
-def parse_curse_image(curses):
+def parse_curse_image(curses, keys):
     try:
-        curse1 = baidu_ocr(curses[0])
-        curse2 = baidu_ocr(curses[1])
-        curse3 = baidu_ocr(curses[2])
+        curse1 = baidu_ocr(curses[0], keys)
+        curse2 = baidu_ocr(curses[1], keys)
+        curse3 = baidu_ocr(curses[2], keys)
     except:
-        time.sleep(5)
-        curse1 = parse_curse_image(curses)[0]
-        curse2 = parse_curse_image(curses)[1]
-        curse3 = parse_curse_image(curses)[2]
+        time.sleep(5)  # in case parse failed
+        curse1 = parse_curse_image(curses, keys)[0]
+        curse2 = parse_curse_image(curses, keys)[1]
+        curse3 = parse_curse_image(curses, keys)[2]
     return [curse1, curse2, curse3]
 
 
-def baidu_ocr(pic_file):
-    """利用百度api识别文本，并保存提取的文字
-        picfile:    图片文件名
-        outfile:    输出文件
-        """
+def curse_page_detect(window, count=0):
+    f = window[7]
+    while count < 400:
+        curse_page_diff = [692-274, 177-46, 1285-274, 278-46]
+        curse_page_image = ImageGrab.grab(bbox=(window[0] + curse_page_diff[0], window[1] + curse_page_diff[1],
+                                                window[0] + curse_page_diff[2], window[1] + curse_page_diff[3]))
+        if path.exists('curse_page_image.jpg'):
+            os.remove('curse_page_image.jpg')
+        time.sleep(0.1)
+        curse_page_image.save('curse_page_image.jpg', 'JPEG')
+        im1_hash = imagehash.average_hash(Image.open('curse_page_image.jpg'))
+        im2_hash = imagehash.average_hash(Image.open('Ref\\curse_page_image_ref.jpg'))
+        if abs(im1_hash - im2_hash) <= 3:
+            return True
+        time.sleep(1)
+        count += 1
+    curse_page_diff = [692 - 274, 177 - 46, 1285 - 274, 278 - 46]
+    curse_page_image = ImageGrab.grab(bbox=(window[0] + curse_page_diff[0], window[1] + curse_page_diff[1],
+                                            window[0] + curse_page_diff[2], window[1] + curse_page_diff[3]))
+    curse_page_image.save('curse_page_image.jpg', 'JPEG')
+    im1_hash = imagehash.average_hash(Image.open('curse_page_image.jpg'))
+    im2_hash = imagehash.average_hash(Image.open('Ref\\curse_page_image_ref.jpg'))
 
-    APP_ID = '19703117'  # 刚才获取的 ID，下同
-    API_KEY = '2qMC5czdvnEoZiQsjNarDLK0'
-    SECRECT_KEY = 'XNx3VOUoRBEcz9RpNYO9f7FDIKPGO0f7'
-    client = AipOcr(APP_ID, API_KEY, SECRECT_KEY)
+    if abs(im1_hash - im2_hash) <= 3:
+        return True
+    print('Fail to detect curse page, quitting program..', file=f)
+    f.flush()
+    return False
 
+
+def baidu_ocr(pic_file, keys):
+    APP_ID = keys[0]
+    API_KEY = keys[1]
+    SECRET_KEY = keys[2]
+    client = AipOcr(APP_ID, API_KEY, SECRET_KEY)
     i = open(pic_file, 'rb')
     img = i.read()
-    # print("正在识别图片：\t")
     message = client.basicGeneral(img)  # 通用文字识别，每天 50 000 次免费
     # message = client.basicAccurate(img)   # 通用文字高精度识别，每天 800 次免费
-    # print("识别成功！")
     i.close()
     return message['words_result']
 
 
 def select_curse(window, words_results, fail_count=0):  # select curse coordinate may need to be updated.
     start_time = time.time()
+    f = window[7]
+    keys = [window[6]['Baidu_API']['API_ID'], window[6]['Baidu_API']['API_KEY'], window[6]['Baidu_API']['SECRET_KEY']]
     try:
-        if len(words_results[0]) >= 2 and '难度' in words_results[0][1]['words']:
-            forbidden_words = ['无敌', '干扰', '千扰', '秒杀', '状态']
-            # forbidden_words = ['无敌', '秒杀', '反弹', '触发']
+        if len(words_results[0]) >= 2:
+            forbidden_words = window[6]['Forbidden_Curse_Affix']['forbidden_words'].split(',')
             curse_score = [0, 0, 0]
             select = [1, 1, 1]
             max_score = 0
@@ -184,6 +260,7 @@ def select_curse(window, words_results, fail_count=0):  # select curse coordinat
                 try:
                     curse_score[i] = words_results[i][1]['words'].split(':')[1]  # when fail to recognize? out of range?
                 except:
+                    print('Failed to detect curse score!', file=f)
                     pass
                 for j in range(4, len(words_results[i])):
                     temp_word = words_results[i][j]['words']
@@ -195,47 +272,88 @@ def select_curse(window, words_results, fail_count=0):  # select curse coordinat
                         max_score = int(curse_score[index])
                         selected = index+1
             if selected == 1:
-                print("Curse_score: " + words_results[0][1]['words'].split(':')[1])
-                print("Curse_first_affix: " + words_results[0][4]['words'])
+                print("Curse_score: " + words_results[0][1]['words'].split(':')[1], file=f)
+                print("Curse_first_affix: " + words_results[0][4]['words'], file=f)
                 pyautogui.click(x=window[0]+277, y=window[1]+750)  # actual - window x, y
             elif selected == 2:
-                print("Curse_score: " + words_results[1][1]['words'].split(':')[1])
-                print("Curse_first_affix: " + words_results[1][4]['words'])
+                print("Curse_score: " + words_results[1][1]['words'].split(':')[1], file=f)
+                print("Curse_first_affix: " + words_results[1][4]['words'], file=f)
                 pyautogui.click(x=window[0]+715, y=window[1]+750)
             elif selected == 3:
-                print("Curse_score: " + words_results[2][1]['words'].split(':')[1])
-                print("Curse_first_affix: " + words_results[2][4]['words'])
+                print("Curse_score: " + words_results[2][1]['words'].split(':')[1], file=f)
+                print("Curse_first_affix: " + words_results[2][4]['words'], file=f)
                 pyautogui.click(x=window[0]+1149, y=window[1]+750)
             else:
-                print("No available curse, re-selecting...")
+                print("No available curse, re-selecting...", file=f)
                 pyautogui.click(x=window[0]+1356, y=window[1]+184)
                 pyautogui.moveTo(window[0] + window[2]//2, window[1] + window[3]//2)
                 curse_images = get_curse_image(window)
-                curses = parse_curse_image(curse_images)
+                curses = parse_curse_image(curse_images, keys)
                 select_curse(window, curses)
-        else:  # Not in curse page, after 7 sec, re-detect
-            pyautogui.moveTo(window[0] + window[2]//2, window[1] + window[3]//2)
-            time.sleep(7)
-            fail_count += 1
-            if fail_count <= 50:  # If cannot detect, go to failure detection
-                curse_images = get_curse_image(window)
-                curses = parse_curse_image(curse_images)
+            f.flush()
+        else:
+            time.sleep(2)
+            print("Unknown Error Occurred, Refreshing..", file=f)
+            pyautogui.click(x=window[0] + 1356, y=window[1] + 184)
+            pyautogui.moveTo(window[0] + window[2] // 2, window[1] + window[3] // 2)
+            curse_images = get_curse_image(window)
+            curses = parse_curse_image(curse_images, keys)
+            fail_count += 1  # add fail limit
+            if fail_count <= 5:
                 select_curse(window, curses, fail_count)
             else:
-                failure_detect(window)
+                print('Curse detection failed, quitting program..', file=f)
+                f.flush()
+                send_email('Kaki script failed to detect curse, quit program.')
+                sys.exit()
     except:
-        time.sleep(7)
-        print("Unknown Error Occurred, Refreshing..")
+        time.sleep(2)
+        print("Unknown Error Occurred, Refreshing..", file=f)
         pyautogui.click(x=window[0] + 1356, y=window[1] + 184)
         pyautogui.moveTo(window[0] + window[2] // 2, window[1] + window[3] // 2)
         curse_images = get_curse_image(window)
-        curses = parse_curse_image(curse_images)
+        curses = parse_curse_image(curse_images, keys)
         fail_count += 1  # add fail limit
-        if fail_count < 5:
+        if fail_count <= 5:
             select_curse(window, curses, fail_count)
         else:
-            print('Unable to detect curse, picked the first one')
-            pyautogui.click(x=window[0] + 277, y=window[1] + 750)
+            print('Curse detection failed, quitting program..', file=f)
+            f.close()
+            send_email('Kaki script failed to detect curse, quit program.')
+            sys.exit()
+        # else:  # detect if stuck
+        #     stuck_result = stuck_detect(window)
+        #     if stuck_result == 2:
+        #         pyautogui.click(x=window[0] + (320 - 245), y=window[1] + (213 - 123), duration=0.1)
+        #         toggle_auto_path_finding(window)
+        #         print('Adventure stuck at relic augmentation, resolving..')
+        #     elif stuck_result == 1:
+        #         toggle_auto_path_finding(window)
+        #         print('Adventure stuck at random place, resolving..')
+        #     else:
+        #         time.sleep(90)
+        #         select_curse(window, curses, fail_count)
+
+
+def stuck_detect(window):
+    stuck_coordinate_diff = [962 - 245, 203 - 123, 1427 - 245, 255 - 123]
+    stuck_image1 = ImageGrab.grab(bbox=(window[0] + stuck_coordinate_diff[0], window[1] + stuck_coordinate_diff[1],
+                                        window[0] + stuck_coordinate_diff[2], window[1] + stuck_coordinate_diff[3]))
+    stuck_image1.save('stuck_image1.jpg', 'JPEG')
+    time.sleep(5)
+    stuck_image2 = ImageGrab.grab(bbox=(window[0] + stuck_coordinate_diff[0], window[1] + stuck_coordinate_diff[1],
+                                        window[0] + stuck_coordinate_diff[2], window[1] + stuck_coordinate_diff[3]))
+    stuck_image2.save('stuck_image2.jpg', 'JPEG')
+    im1_hash = imagehash.average_hash(Image.open('stuck_image1.jpg'))
+    im2_hash = imagehash.average_hash(Image.open('stuck_image2.jpg'))
+    im_ref_hash = imagehash.average_hash(Image.open('Ref\\stuck_ref1.jpg'))
+    if abs(im1_hash - im2_hash) <= 2:
+        if abs(im1_hash - im_ref_hash) <= 2:
+            return 2  # stuck at relic augmentation
+        else:
+            return 1  # general stuck
+    else:
+        return 0  # not stuck
 
 
 def toggle_auto_path_finding(window):
@@ -244,36 +362,14 @@ def toggle_auto_path_finding(window):
     pyautogui.click(x=window[0] + toggle_diff[0], y=window[1] + toggle_diff[1])
 
 
-def maptile_to_value(tile):  # Map Weight
-    tile_dict = dict()
-    tile_dict['start'] = 0
-    tile_dict['mystery'] = 0
-    tile_dict['shop'] = 0
-    tile_dict['resources'] = 1
-    tile_dict['camp'] = 4
-    tile_dict['secret'] = 1
-    tile_dict['Loot_Adv'] = 3
-    tile_dict['Loot_Curse'] = 100
-    tile_dict['Loot_Normal'] = 2
-    tile_dict['Ruin'] = 2
-    tile_dict['Monster_Adv'] = 2
-    tile_dict['Monster_Elite'] = -999
-    tile_dict['Monster_Normal'] = 3
-    tile_dict['end'] = 0
-    tile_dict['unknown'] = -3
-    return tile_dict[tile]
-
-
 def map_management(window):  # window [x, y, w, h, start.time, stat(dict)]
-    # toggle_auto_path_finding(window)
-    time.sleep(0.25)
-    pyautogui.click(window[0] + window[2]//2, window[1] + window[3]//2, duration=0.4)
-    time.sleep(0.25)
+    # add check to see if at map selection page
+    time.sleep(1.2)
     map_button_diff = [367-246, 889-123]
     map_coordinate = dict()
-    pyautogui.moveTo(window[0] + map_button_diff[0], window[1] + map_button_diff[1], duration=0.1)
+    pyautogui.moveTo(window[0] + map_button_diff[0], window[1] + map_button_diff[1], duration=0.3)
     pyautogui.click()
-    time.sleep(0.5)
+    time.sleep(0.7)
     map_tile_0_0_diff = [646-246, 401-123, 734-246, 549-123]
     map_coordinate[(0, 0)] = [int(map_tile_0_0_diff[0] + map_tile_0_0_diff[2]) // 2 + window[0],
                               int(map_tile_0_0_diff[1] + map_tile_0_0_diff[3]) // 2 + window[1]]
@@ -383,7 +479,8 @@ def map_management(window):  # window [x, y, w, h, start.time, stat(dict)]
                        [0, 2], [1, 2], [2, 2], [3, 2],
                        [0, 3], [1, 3], [2, 3],
                        [0, 4], [1, 4]]
-    print('Map raw detection starts...')
+    f = window[7]
+    print('Map raw detection starts...', file=f)
     map_start_time = time.time()
     raw_color_list = [None] * 14
     for i in range(len(image_list)):
@@ -404,14 +501,15 @@ def map_management(window):  # window [x, y, w, h, start.time, stat(dict)]
             else:
                 raw_color_list[i] = get_image_diff(image_list[i], 'Monster')
         elif abs(temp_color[0] - 122) <= 15 and abs(temp_color[2] - 195) <= 15:
-            raw_color_list[i] = 'resources'
+            # raw_color_list[i] = 'resources'  # add differentiation
+            raw_color_list[i] = get_image_diff(image_list[i], 'Resources')
         elif abs(temp_color[0] - 155) <= 15 and abs(temp_color[2] - 93) <= 15:
             raw_color_list[i] = 'camp'
         elif abs(temp_color[0] - 143) <= 15 and abs(temp_color[2] - 157) <= 15:
             raw_color_list[i] = 'secret'
         else:
             raw_color_list[i] = 'unknown'
-    print('Map raw detection complete!')
+    print('Map raw detection complete!', file=f)
     map_elapsed_time = time.time() - map_start_time
     start, end = build_tree(raw_color_list, coordinate_list)
     map_path = find_route(start, end)
@@ -419,9 +517,9 @@ def map_management(window):  # window [x, y, w, h, start.time, stat(dict)]
     mark_route_diff = [524 - 246, 887 - 123]
     pyautogui.click(x=mark_route_diff[0] + window[0], y=mark_route_diff[1] + window[1], duration=0.2)
 
-    print('Best path found:')
+    print('Best path found:', file=f)
     for item in map_path:
-        print('Tile: ' + item.value + '  coordinate: ' + str(item.coordinate))
+        print('Tile: ' + item.value + '  coordinate: ' + str(item.coordinate), file=f)
         if item.value == 'resources':
             window[5]['Total_Resources'] += 1
         elif item.value == 'Monster_Normal' or item.value == 'Monster_Adv':
@@ -438,7 +536,8 @@ def map_management(window):  # window [x, y, w, h, start.time, stat(dict)]
     pyautogui.moveTo(window[0] + map_button_diff[0], window[1] + map_button_diff[1], duration=0.2)
     pyautogui.click()
     toggle_auto_path_finding(window)
-    print("Total map management time consumed: " + str(map_elapsed_time) + " seconds!")
+    print("Total map management time consumed: " + str(map_elapsed_time) + " seconds!", file=f)
+    f.flush()
 
 
 def build_tree(map_list, coordinate_list):
@@ -483,7 +582,7 @@ def get_dominant_colors(image_path, clusters):
 
 def get_image_diff(image1, folder_name):
     # img_ref will be a list of images
-    image_ref = ['Map/' + f for f in os.listdir('Map/' + folder_name)]
+    image_ref = ['Map/' + folder_name + "/" + f for f in os.listdir('Map/' + folder_name)]
     im1_hash = imagehash.average_hash(Image.open(image1))
     dist_min = 99999999
     selection = 0
@@ -495,7 +594,7 @@ def get_image_diff(image1, folder_name):
         if sum_dists <= dist_min:
             dist_min = sum_dists
             selection = i
-    best_match = image_ref[selection].split('.')[0].split('/')[1]
+    best_match = image_ref[selection].split('.')[0].split('/')[2]
     return best_match
 
 
@@ -519,3 +618,51 @@ def auto_legend(window, counter):
         pyautogui.click()
         count += 1
 
+
+def resource_completion_detect(window, count=0):
+    time.sleep(1)
+    first_track_diff = [729-245, 716-123, 794-245, 782-123]  # fail
+    second_track_diff = [449-245, 716-123, 514-245, 782-123]  # success
+    first_track_img = ImageGrab.grab(bbox=(window[0] + first_track_diff[0], window[1] + first_track_diff[1],
+                                           window[0] + first_track_diff[2], window[1] + first_track_diff[3]))
+    second_track_img = ImageGrab.grab(bbox=(window[0] + second_track_diff[0], window[1] + second_track_diff[1],
+                                            window[0] + second_track_diff[2], window[1] + second_track_diff[3]))
+    first_track_img.save('first_track_img.jpg', 'JPEG')
+    second_track_img.save('second_track_img.jpg', 'JPEG')
+    im1_hash = imagehash.average_hash(Image.open('first_track_img.jpg'))
+    im1_hash_ref = imagehash.average_hash(Image.open('Ref\\first_track_img_ref.jpg'))
+    im2_hash = imagehash.average_hash(Image.open('second_track_img.jpg'))
+    im2_hash_ref = imagehash.average_hash(Image.open('Ref\\second_track_img_ref.jpg'))
+    if abs(im1_hash - im1_hash_ref) <= 3 or abs(im2_hash - im2_hash_ref) <= 3:  # fail here?
+        pyautogui.click(window[0] + window[2] // 2, window[1] + window[3] // 8 * 7, duration=0.25)
+        count += 1
+        if count < 2:
+            resource_completion_detect(window, count)
+        return True
+    else:
+        return False
+
+
+def send_email(message):
+    config = configparser.ConfigParser()
+    config.read('config.ini', encoding='utf-8')
+
+    gmail_user = config['Email']['username']
+    gmail_password = config['Email']['password']
+
+    sent_from = gmail_user
+    to = ['aaron.xu106@gmail.com']
+    subject = 'KakiScript Failed'
+    body = message
+
+    email_text = """From: %s\nTo: %s\nSubject: %s\n\n%s
+                 """ % (sent_from, ", ".join(to), subject, body)
+
+    try:
+        server = smtplib.SMTP_SSL('smtp.gmail.com', 465)
+        server.ehlo()
+        server.login(gmail_user, gmail_password)
+        server.sendmail(sent_from, to, email_text)
+        server.close()
+    except Exception as e:
+        pass
