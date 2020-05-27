@@ -1,4 +1,6 @@
 import win32gui
+import win32api
+import win32con
 import pyautogui
 from PIL import Image, ImageGrab
 from aip import AipOcr
@@ -648,10 +650,9 @@ def send_email(message):
     config.read('config.ini', encoding='utf-8')
 
     gmail_user = config['Email']['username']
-    gmail_password = config['Email']['password']
 
-    sent_from = gmail_user
-    to = ['aaron.xu106@gmail.com']
+    sent_from = "aaron.luke927@gmail.com"
+    to = [gmail_user]
     subject = 'KakiScript Failed'
     body = message
 
@@ -661,8 +662,17 @@ def send_email(message):
     try:
         server = smtplib.SMTP_SSL('smtp.gmail.com', 465)
         server.ehlo()
-        server.login(gmail_user, gmail_password)
+        server.login("aaron.luke927@gmail.com", "Asdfasdf2345!!!")
         server.sendmail(sent_from, to, email_text)
         server.close()
     except Exception as e:
         pass
+
+#
+# def doClick(cx, cy):
+#     hwnd = win32gui.FindWindowEx(None, None, None, 'Calculator')
+#     time.sleep(0.2)
+#     # win32gui.SetForegroundWindow(hwnd)
+#     long_position = win32api.MAKELONG(cx, cy)  # 模拟鼠标指针 传送到指定坐标
+#     win32api.SendMessage(hwnd, win32con.WM_LBUTTONDOWN, win32con.MK_LBUTTON, long_position)  # 模拟鼠标按下
+#     win32api.SendMessage(hwnd, win32con.WM_LBUTTONUP, win32con.MK_LBUTTON, long_position)  # 模拟鼠标弹起
