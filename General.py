@@ -1,6 +1,6 @@
 import win32gui
-import win32api
-import win32con
+# import win32api
+# import win32con
 import pyautogui
 from PIL import Image, ImageGrab
 from aip import AipOcr
@@ -17,6 +17,7 @@ import ctypes
 import configparser
 import sys
 import smtplib
+from email.mime.text import MIMEText
 
 
 class MapTile:
@@ -645,28 +646,53 @@ def resource_completion_detect(window, count=0):
         return False
 
 
+# def send_email(message):
+#     config = configparser.ConfigParser()
+#     config.read('config.ini', encoding='utf-8')
+#
+#     gmail_user = config['Email']['username']
+#
+#     sent_from = "aaron.luke927@gmail.com"
+#     to = [gmail_user]
+#     subject = 'KakiScript Failed'
+#     body = message
+#
+#     email_text = """From: %s\nTo: %s\nSubject: %s\n\n%s
+#                  """ % (sent_from, ", ".join(to), subject, body)
+#
+#     try:
+#         server = smtplib.SMTP_SSL('smtp.gmail.com', 465)
+#         server.ehlo()
+#         server.login("aaron.luke927@gmail.com", "Asdfasdf2345!!!")
+#         server.sendmail(sent_from, to, email_text)
+#         server.close()
+#     except Exception as e:
+#         pass
+
+
 def send_email(message):
-    config = configparser.ConfigParser()
-    config.read('config.ini', encoding='utf-8')
-
-    gmail_user = config['Email']['username']
-
-    sent_from = "aaron.luke927@gmail.com"
-    to = [gmail_user]
-    subject = 'KakiScript Failed'
-    body = message
-
-    email_text = """From: %s\nTo: %s\nSubject: %s\n\n%s
-                 """ % (sent_from, ", ".join(to), subject, body)
-
     try:
-        server = smtplib.SMTP_SSL('smtp.gmail.com', 465)
-        server.ehlo()
-        server.login("aaron.luke927@gmail.com", "Asdfasdf2345!!!")
-        server.sendmail(sent_from, to, email_text)
-        server.close()
-    except Exception as e:
+        config = configparser.ConfigParser()
+        config.read('config.ini', encoding='utf-8')
+
+        email_user = config['Email']['email']
+
+        host = 'smtp.163.com'
+        port = 465
+        sender = 'aaron_luke927@163.com'
+        pwd = 'WWFWTEMTFYWSMOVD'
+        receiver = email_user
+        body = message
+        msg = MIMEText(body, 'html')
+        msg['subject'] = 'KakiScript Failed!'
+        msg['from'] = sender
+        msg['to'] = receiver
+        s = smtplib.SMTP_SSL(host, port)
+        s.login(sender, pwd)
+        s.sendmail(sender, receiver, msg.as_string())
+    except:
         pass
+
 
 #
 # def doClick(cx, cy):
