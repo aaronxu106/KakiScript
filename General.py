@@ -622,6 +622,134 @@ def auto_legend(window, counter):
         count += 1
 
 
+def void_island_grind(window):
+    time.sleep(1)
+    config = configparser.ConfigParser()
+    try:
+        config.read('config.ini', encoding='utf-8')
+    except:
+        config.read('config.ini', encoding='utf-8-sig')
+    restart = int(config['Void_Island']['Restart'])
+    level = int(config['Void_Island']['Level'])
+    melee_kaki_index = config['Void_Island']['Melee_Index'].split(',')
+    range_kaki_index = config['Void_Island']['Range_Index'].split(',')
+
+    adv_start_diff = [1619 - 245, 887 - 123]
+    pyautogui.click(adv_start_diff[0] + window[0], adv_start_diff[1] + window[1], duration=0.25)
+
+    # check if inventory full
+    full_inventory_img_diff = [727 - 245, 351 - 123, 1190 - 245, 397 - 123]
+    full_inventory_img = ImageGrab.grab(bbox=(window[0] + full_inventory_img_diff[0],
+                                              window[1] + full_inventory_img_diff[1],
+                                              window[0] + full_inventory_img_diff[2],
+                                              window[1] + full_inventory_img_diff[3]))
+    full_inventory_img.save('inventory_check.jpg', 'JPEG')
+    im_hash = imagehash.average_hash(Image.open('inventory_check.jpg'))
+    im_hash_ref = imagehash.average_hash(Image.open('Ref\\inventory_check_ref.jpg'))
+    if abs(im_hash - im_hash_ref) > 4:
+        void_island_diff = [328 - 245, 560 - 123]
+        pyautogui.click(void_island_diff[0] + window[0], void_island_diff[1] + window[1], duration=0.5)
+        level_inc_diff = [1149 - 245, 716 - 123]
+        time.sleep(0.8)
+        if level > 1:
+            pyautogui.click(level_inc_diff[0] + window[0], level_inc_diff[1] + window[1], clicks=level,
+                            interval=0.5)
+        grind_start_diff = [1103 - 245, 831 - 123]
+        pyautogui.click(grind_start_diff[0] + window[0], grind_start_diff[1] + window[1], duration=0.8)
+        team_select_diff = [859 - 245, 748 - 123]
+        pyautogui.click(team_select_diff[0] + window[0], team_select_diff[1] + window[1], duration=0.8)
+
+        melee_group_diff = [596 - 245, 624 - 123]
+        first_kaki_diff = [365 - 245, 766 - 123]
+        pyautogui.click(melee_group_diff[0] + window[0], melee_group_diff[1] + window[1], duration=0.8)
+        time.sleep(0.2)
+        move_counter = 0
+        for i in range(len(melee_kaki_index)):  # max 13 kaki, in case of new kaki, need to modify the if statement
+            if (int(melee_kaki_index[i]) - 6 * move_counter) > 7:
+                pyautogui.moveTo(first_kaki_diff[0] + 150 * 6 + window[0], first_kaki_diff[1] + window[1])
+                pyautogui.mouseDown()
+                time.sleep(0.5)
+                pyautogui.dragRel(xOffset=-150 * 6, yOffset=0, duration=3, mouseDownUp=False)
+                time.sleep(0.5)
+                pyautogui.mouseUp()
+                move_counter += 1
+                pyautogui.click(first_kaki_diff[0] +
+                                150 * (int(melee_kaki_index[i]) - 6 * move_counter - 1) + window[0],
+                                first_kaki_diff[1] + window[1], duration=0.8)
+            elif (int(melee_kaki_index[i]) - 6 * move_counter) <= 7:
+                pyautogui.click(first_kaki_diff[0] +
+                                150 * (int(melee_kaki_index[i]) - 6 * move_counter - 1) + window[0],
+                                first_kaki_diff[1] + window[1], duration=0.8)
+
+        range_group_diff = [797 - 245, 622 - 123]
+        pyautogui.click(range_group_diff[0] + window[0], range_group_diff[1] + window[1], duration=0.8)
+        for i in range(len(range_kaki_index)):  # max 17 kaki, in case of new kaki, need to modify if statement
+            if (int(range_kaki_index[i]) - 6 * move_counter) > 13:
+                pyautogui.moveTo(first_kaki_diff[0] + 150 * 6 + window[0], first_kaki_diff[1] + window[1])
+                pyautogui.mouseDown()
+                time.sleep(0.5)
+                pyautogui.dragRel(xOffset=-150 * 6, yOffset=0, duration=3, mouseDownUp=False)
+                time.sleep(0.5)
+                pyautogui.mouseUp()
+                pyautogui.moveTo(first_kaki_diff[0] + 150 * 6 + window[0], first_kaki_diff[1] + window[1])
+                pyautogui.mouseDown()
+                time.sleep(0.5)
+                pyautogui.dragRel(xOffset=-150 * 6, yOffset=0, duration=3, mouseDownUp=False)
+                time.sleep(0.5)
+                pyautogui.mouseUp()
+                move_counter += 2
+                pyautogui.click(first_kaki_diff[0] +
+                                150 * (int(range_kaki_index[i]) - 6 * move_counter) + window[0] - 3,
+                                first_kaki_diff[1] + window[1], duration=0.8)
+            elif (int(range_kaki_index[i]) - 6 * move_counter) > 7:
+                pyautogui.moveTo(first_kaki_diff[0] + 150 * 6 + window[0], first_kaki_diff[1] + window[1])
+                pyautogui.mouseDown()
+                time.sleep(0.5)
+                pyautogui.dragRel(xOffset=-150 * 6, yOffset=0, duration=3, mouseDownUp=False)
+                time.sleep(0.5)
+                pyautogui.mouseUp()
+                move_counter += 1
+                pyautogui.click(first_kaki_diff[0] +
+                                150 * (int(range_kaki_index[i]) - 6 * move_counter - 1) + window[0],
+                                first_kaki_diff[1] + window[1], duration=0.8)
+            elif 0 < (int(range_kaki_index[i]) - 6 * move_counter) <= 7:
+                pyautogui.click(first_kaki_diff[0] +
+                                150 * (int(range_kaki_index[i]) - 6 * move_counter - 1) + window[0],
+                                first_kaki_diff[1] + window[1], duration=0.8)
+            elif (int(range_kaki_index[i]) - 6 * move_counter) <= 0:
+                pyautogui.moveTo(first_kaki_diff[0] + window[0], first_kaki_diff[1] + window[1])
+                pyautogui.mouseDown()
+                time.sleep(0.5)
+                pyautogui.dragRel(xOffset=150 * 6, yOffset=0, duration=3, mouseDownUp=False)
+                time.sleep(0.5)
+                pyautogui.mouseUp()
+                move_counter -= 1
+                pyautogui.click(first_kaki_diff[0] +
+                                150 * (int(range_kaki_index[i]) - 6 * move_counter - 1) + window[0],
+                                first_kaki_diff[1] + window[1], duration=0.8)
+        confirm_team_diff = [1493 - 245, 872 - 123]
+        pyautogui.click(window[0] + confirm_team_diff[0], window[1] + confirm_team_diff[1], duration=0.5)
+        go_button_diff = [1460 - 245, 839 - 123]
+        pyautogui.click(window[0] + go_button_diff[0], window[1] + go_button_diff[1], duration=0.5)
+        time.sleep(6)
+        toggle_auto_path_finding(window)
+        time.sleep(6)
+        select_blessing_diff = [1047 - 245, 740 - 123]
+        pyautogui.click(window[0] + select_blessing_diff[0], window[1] + select_blessing_diff[1], duration=0.5)
+        time.sleep(60*restart - 10)
+        success_continue_diff = [957 - 245, 874 - 123]
+        pyautogui.click(window[0] + success_continue_diff[0], window[1] + success_continue_diff[1], duration=0.5)
+        time.sleep(1)  # miracle_stone experience completion
+        pyautogui.click(window[0] + success_continue_diff[0], window[1] + success_continue_diff[1], duration=0.5)
+        time.sleep(10)  # confirm
+        pyautogui.click(window[0] + success_continue_diff[0], window[1] + success_continue_diff[1], duration=0.5)
+        time.sleep(10)
+    else:
+        send_email('Inventory Full!')
+        sys.exit()
+    pass
+
+
 def resource_completion_detect(window, count=0):
     time.sleep(1)
     first_track_diff = [729-245, 716-123, 794-245, 782-123]  # fail

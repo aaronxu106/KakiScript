@@ -13,7 +13,10 @@ def main():
     print("Log started: ", now, file=f)
     # read config file
     config = configparser.ConfigParser()
-    config.read('config.ini', encoding='utf-8')
+    try:
+        config.read('config.ini', encoding='utf-8')
+    except:
+        config.read('config.ini', encoding='utf-8-sig')
 
     title = 'KakiRaid'
     if int(config['DEFAULT']['AdjustWindow']) == 1:
@@ -97,11 +100,22 @@ def main():
         print('Quit with time out')
     elif int(config['DEFAULT']['ModeSelection']) == 1:
         General.auto_legend(window, auto_legend_count)
+    elif int(config['DEFAULT']['ModeSelection']) == 2:
+        grind_count = int(config['Void_Island']['Count'])
+        if grind_count == 0:
+            grind_count = 9999
+        while grind_count > 0:
+            General.void_island_grind(window)
+            print('Void Island Completed', file=f)
+            f.flush()
+            grind_count -= 1
 
 
 if __name__ == "__main__":
     main()
 
+    # General.doClick(367 - 246, 889 - 123)
+    # General.doClick(100, 700)
 
     # start_time = time.time()
     # f = open('Kakilog.log', 'a+', encoding='utf-8')
@@ -112,6 +126,7 @@ if __name__ == "__main__":
     # config.read('config.ini', encoding='utf-8')
     # title = 'KakiRaid'
     # window = General.get_window_coordinate(title)
+    # print(window)
     # if int(config['DEFAULT']['AdjustWindow']) == 1:
     #     General.adjust_window(title, [0, 0])
     # elif int(config['DEFAULT']['AdjustWindow']) == 2:
