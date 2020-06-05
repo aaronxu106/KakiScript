@@ -1,6 +1,4 @@
 import win32gui
-# import win32api
-# import win32con
 import pyautogui
 from PIL import Image, ImageGrab
 from aip import AipOcr
@@ -13,11 +11,9 @@ import os.path
 from os import path
 import imagehash
 import copy
-import ctypes
 import configparser
 import sys
 import smtplib
-from email.mime.text import MIMEText
 
 
 class MapTile:
@@ -56,7 +52,10 @@ class Solution:
 
     def map_dict_to_value(self):
         config = configparser.ConfigParser()
-        config.read('config.ini', encoding='utf-8')
+        try:
+            config.read('config.ini', encoding='utf-8')
+        except:
+            config.read('config.ini', encoding='utf-8-sig')
         self.tile_dict['start'] = 0
         self.tile_dict['shop'] = 0
         self.tile_dict['secret'] = 1
@@ -168,7 +167,6 @@ def failure_detect(window):
         print('Time elapsed:', file=f)
         print('{:02d}:{:02d}:{:02d}'.format(elapsed_time // 3600, (elapsed_time % 3600 // 60), elapsed_time % 60),
               file=f)
-        # ctypes.windll.user32.MessageBoxW(0, 'Battle Failed, Quitting Program..', 'Message', 0x1000)
         time.sleep(1)
         send_email('Kaki battle failed, quit program.')
         sys.exit()
@@ -213,7 +211,7 @@ def curse_page_detect(window, count=0):
                                                 window[0] + curse_page_diff[2], window[1] + curse_page_diff[3]))
         if path.exists('curse_page_image.jpg'):
             os.remove('curse_page_image.jpg')
-        time.sleep(0.1)
+        time.sleep(0.5)
         curse_page_image.save('curse_page_image.jpg', 'JPEG')
         im1_hash = imagehash.average_hash(Image.open('curse_page_image.jpg'))
         im2_hash = imagehash.average_hash(Image.open('Ref\\curse_page_image_ref.jpg'))
@@ -361,18 +359,18 @@ def stuck_detect(window):
 
 def toggle_auto_path_finding(window):
     toggle_diff = [1607-236, 810-123]
-    time.sleep(0.2)
+    time.sleep(0.5)
     pyautogui.click(x=window[0] + toggle_diff[0], y=window[1] + toggle_diff[1])
 
 
 def map_management(window):  # window [x, y, w, h, start.time, stat(dict)]
     # add check to see if at map selection page
-    time.sleep(1.2)
+    time.sleep(1.5)
     map_button_diff = [367-246, 889-123]
     map_coordinate = dict()
     pyautogui.moveTo(window[0] + map_button_diff[0], window[1] + map_button_diff[1], duration=0.3)
     pyautogui.click()
-    time.sleep(0.7)
+    time.sleep(1)
     map_tile_0_0_diff = [646-246, 401-123, 734-246, 549-123]
     map_coordinate[(0, 0)] = [int(map_tile_0_0_diff[0] + map_tile_0_0_diff[2]) // 2 + window[0],
                               int(map_tile_0_0_diff[1] + map_tile_0_0_diff[3]) // 2 + window[1]]
@@ -623,7 +621,7 @@ def auto_legend(window, counter):
 
 
 def void_island_grind(window):
-    time.sleep(1)
+    time.sleep(2)
     config = configparser.ConfigParser()
     try:
         config.read('config.ini', encoding='utf-8')
@@ -647,10 +645,11 @@ def void_island_grind(window):
     im_hash = imagehash.average_hash(Image.open('inventory_check.jpg'))
     im_hash_ref = imagehash.average_hash(Image.open('Ref\\inventory_check_ref.jpg'))
     if abs(im_hash - im_hash_ref) > 4:
+        time.sleep(0.5)
         void_island_diff = [328 - 245, 560 - 123]
         pyautogui.click(void_island_diff[0] + window[0], void_island_diff[1] + window[1], duration=0.5)
         level_inc_diff = [1149 - 245, 716 - 123]
-        time.sleep(0.8)
+        time.sleep(1)
         if level > 1:
             pyautogui.click(level_inc_diff[0] + window[0], level_inc_diff[1] + window[1], clicks=level,
                             interval=0.5)
@@ -662,15 +661,15 @@ def void_island_grind(window):
         melee_group_diff = [596 - 245, 624 - 123]
         first_kaki_diff = [365 - 245, 766 - 123]
         pyautogui.click(melee_group_diff[0] + window[0], melee_group_diff[1] + window[1], duration=0.8)
-        time.sleep(0.2)
+        time.sleep(1)
         move_counter = 0
         for i in range(len(melee_kaki_index)):  # max 13 kaki, in case of new kaki, need to modify the if statement
             if (int(melee_kaki_index[i]) - 6 * move_counter) > 7:
                 pyautogui.moveTo(first_kaki_diff[0] + 150 * 6 + window[0], first_kaki_diff[1] + window[1])
                 pyautogui.mouseDown()
-                time.sleep(0.5)
+                time.sleep(1)
                 pyautogui.dragRel(xOffset=-150 * 6, yOffset=0, duration=3, mouseDownUp=False)
-                time.sleep(0.5)
+                time.sleep(1)
                 pyautogui.mouseUp()
                 move_counter += 1
                 pyautogui.click(first_kaki_diff[0] +
@@ -687,15 +686,15 @@ def void_island_grind(window):
             if (int(range_kaki_index[i]) - 6 * move_counter) > 13:
                 pyautogui.moveTo(first_kaki_diff[0] + 150 * 6 + window[0], first_kaki_diff[1] + window[1])
                 pyautogui.mouseDown()
-                time.sleep(0.5)
+                time.sleep(1)
                 pyautogui.dragRel(xOffset=-150 * 6, yOffset=0, duration=3, mouseDownUp=False)
-                time.sleep(0.5)
+                time.sleep(1)
                 pyautogui.mouseUp()
                 pyautogui.moveTo(first_kaki_diff[0] + 150 * 6 + window[0], first_kaki_diff[1] + window[1])
                 pyautogui.mouseDown()
-                time.sleep(0.5)
+                time.sleep(1)
                 pyautogui.dragRel(xOffset=-150 * 6, yOffset=0, duration=3, mouseDownUp=False)
-                time.sleep(0.5)
+                time.sleep(1)
                 pyautogui.mouseUp()
                 move_counter += 2
                 pyautogui.click(first_kaki_diff[0] +
@@ -704,9 +703,9 @@ def void_island_grind(window):
             elif (int(range_kaki_index[i]) - 6 * move_counter) > 7:
                 pyautogui.moveTo(first_kaki_diff[0] + 150 * 6 + window[0], first_kaki_diff[1] + window[1])
                 pyautogui.mouseDown()
-                time.sleep(0.5)
+                time.sleep(0.8)
                 pyautogui.dragRel(xOffset=-150 * 6, yOffset=0, duration=3, mouseDownUp=False)
-                time.sleep(0.5)
+                time.sleep(0.8)
                 pyautogui.mouseUp()
                 move_counter += 1
                 pyautogui.click(first_kaki_diff[0] +
@@ -719,9 +718,9 @@ def void_island_grind(window):
             elif (int(range_kaki_index[i]) - 6 * move_counter) <= 0:
                 pyautogui.moveTo(first_kaki_diff[0] + window[0], first_kaki_diff[1] + window[1])
                 pyautogui.mouseDown()
-                time.sleep(0.5)
+                time.sleep(0.8)
                 pyautogui.dragRel(xOffset=150 * 6, yOffset=0, duration=3, mouseDownUp=False)
-                time.sleep(0.5)
+                time.sleep(0.8)
                 pyautogui.mouseUp()
                 move_counter -= 1
                 pyautogui.click(first_kaki_diff[0] +
@@ -731,19 +730,48 @@ def void_island_grind(window):
         pyautogui.click(window[0] + confirm_team_diff[0], window[1] + confirm_team_diff[1], duration=0.5)
         go_button_diff = [1460 - 245, 839 - 123]
         pyautogui.click(window[0] + go_button_diff[0], window[1] + go_button_diff[1], duration=0.5)
-        time.sleep(6)
+        time.sleep(6.5)
         toggle_auto_path_finding(window)
-        time.sleep(6)
+        time.sleep(4.5)
         select_blessing_diff = [1047 - 245, 740 - 123]
         pyautogui.click(window[0] + select_blessing_diff[0], window[1] + select_blessing_diff[1], duration=0.5)
         time.sleep(60*restart - 10)
-        success_continue_diff = [957 - 245, 874 - 123]
-        pyautogui.click(window[0] + success_continue_diff[0], window[1] + success_continue_diff[1], duration=0.5)
-        time.sleep(1)  # miracle_stone experience completion
-        pyautogui.click(window[0] + success_continue_diff[0], window[1] + success_continue_diff[1], duration=0.5)
-        time.sleep(10)  # confirm
-        pyautogui.click(window[0] + success_continue_diff[0], window[1] + success_continue_diff[1], duration=0.5)
-        time.sleep(10)
+        check_counter = 60*5
+
+        while check_counter > 0:
+            time.sleep(1)
+            void_complete_img_diff = [759 - 245, 842 - 123, 1160 - 245, 900 - 123]
+            void_complete_img = ImageGrab.grab(bbox=(window[0] + void_complete_img_diff[0],
+                                                     window[1] + void_complete_img_diff[1],
+                                                     window[0] + void_complete_img_diff[2],
+                                                     window[1] + void_complete_img_diff[3]))
+            void_complete_img.save('void_complete.jpg', 'JPEG')
+            time.sleep(0.5)
+            im_hash_void_complete = imagehash.average_hash(Image.open('void_complete.jpg'))
+            im_hash_void_complete_ref = imagehash.average_hash(Image.open('Ref\\void_complete_ref.jpg'))
+            if abs(im_hash_void_complete - im_hash_void_complete_ref) < 4:
+                time.sleep(1.5)
+                success_continue_diff = [957 - 245, 874 - 123]
+                pyautogui.click(window[0] + success_continue_diff[0], window[1] + success_continue_diff[1],
+                                duration=0.5)
+                time.sleep(1.5)  # miracle_stone experience completion
+                pyautogui.click(window[0] + success_continue_diff[0], window[1] + success_continue_diff[1],
+                                duration=0.5)
+                time.sleep(1.5)  # confirm hero/god experience count down
+                pyautogui.click(window[0] + success_continue_diff[0], window[1] + success_continue_diff[1],
+                                duration=0.5)
+                time.sleep(1.5)  # confirm hero/god experience continue
+                pyautogui.click(window[0] + success_continue_diff[0], window[1] + success_continue_diff[1],
+                                duration=0.5)
+                time.sleep(1.5)  # ???
+                pyautogui.click(window[0] + success_continue_diff[0], window[1] + success_continue_diff[1],
+                                duration=0.5)
+                time.sleep(10)
+                break
+            check_counter -= 1
+        if check_counter == 0:
+            send_email('Void_Island Stuck, quit program.')
+            sys.exit()
     else:
         send_email('Inventory Full!')
         sys.exit()
@@ -751,7 +779,7 @@ def void_island_grind(window):
 
 
 def resource_completion_detect(window, count=0):
-    time.sleep(1)
+    time.sleep(2.5)
     first_track_diff = [729-245, 716-123, 794-245, 782-123]  # fail
     second_track_diff = [449-245, 716-123, 514-245, 782-123]  # success
     first_track_img = ImageGrab.grab(bbox=(window[0] + first_track_diff[0], window[1] + first_track_diff[1],
@@ -778,7 +806,7 @@ def resource_completion_detect(window, count=0):
 #     config = configparser.ConfigParser()
 #     config.read('config.ini', encoding='utf-8')
 #
-#     gmail_user = config['Email']['username']
+#     gmail_user = config['Email']['email']
 #
 #     sent_from = "aaron.luke927@gmail.com"
 #     to = [gmail_user]
@@ -801,7 +829,10 @@ def resource_completion_detect(window, count=0):
 def send_email(message):
     try:
         config = configparser.ConfigParser()
-        config.read('config.ini', encoding='utf-8')
+        try:
+            config.read('config.ini', encoding='utf-8')
+        except:
+            config.read('config.ini', encoding='utf-8-sig')
 
         email_user = config['Email']['email']
 
@@ -820,7 +851,6 @@ def send_email(message):
         s.sendmail(sender, receiver, msg.as_string())
     except:
         pass
-
 
 #
 # def doClick(cx, cy):

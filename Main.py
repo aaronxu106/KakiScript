@@ -5,6 +5,8 @@ import configparser
 import sys
 from datetime import datetime
 
+# from PIL import Image, ImageGrab
+
 
 def main():
     start_time = time.time()
@@ -113,6 +115,19 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+
+    # title = 'KakiRaid'
+    # window = General.get_window_coordinate(title)
+    # print(window)
+    # success_continue_diff = [957 - 245, 874 - 123]
+    # pyautogui.click(window[0] + success_continue_diff[0], window[1] + success_continue_diff[1], duration=0.5)
+    # void_complete_img_diff = [759 - 245, 842 - 123, 1160 - 245, 900 - 123]
+    # void_complete_img = ImageGrab.grab(bbox=(window[0] + void_complete_img_diff[0],
+    #                                          window[1] + void_complete_img_diff[1],
+    #                                          window[0] + void_complete_img_diff[2],
+    #                                          window[1] + void_complete_img_diff[3]))
+    # void_complete_img.save('void_complete.jpg', 'JPEG')
 
     # General.doClick(367 - 246, 889 - 123)
     # General.doClick(100, 700)
