@@ -5,7 +5,7 @@ import configparser
 import sys
 from datetime import datetime
 
-# from PIL import Image, ImageGrab
+from PIL import Image, ImageGrab
 
 
 def main():
@@ -63,7 +63,20 @@ def main():
             General.failure_detect(window)
             curse_page_result = General.curse_page_detect(window)
             if not curse_page_result:
+                confirm_counter = 8
+                confirm_flag = 0
+                toggle_flag = 0
+                while confirm_counter > 0:
+                    time.sleep(1.5)
+                    confirm_flag = General.confirm_detect(window)
+                    if confirm_flag is True:
+                        toggle_flag = 1
+                    confirm_counter -= 1
+                time.sleep(60)  # wait for battle finish
+                if confirm_flag == 0 and toggle_flag == 1:
+                    General.toggle_auto_path_finding(window)
                 stuck_result = General.stuck_detect(window)
+                time.sleep(180)  # wait for complete map
                 curse_page_result = General.curse_page_detect(window, 400)  # 400 as count to bypass repeated detect
                 while stuck_result != 0 and not curse_page_result:
                     if stuck_result == 1:
@@ -84,7 +97,11 @@ def main():
             else:
                 curse_images = General.get_curse_image(window)
                 curses = General.parse_curse_image(curse_images, keys)
-                General.select_curse(window, curses)
+                if curses != [0, 0, 0]:
+                    General.select_curse(window, curses)
+                else:
+                    print("Baidu ocr failed!", file=f)
+                    sys.exit()
             General.resource_completion_detect(window)
             General.map_management(window)
             elapsed_time = time.time() - temp_start_time
@@ -106,6 +123,7 @@ def main():
         grind_count = int(config['Void_Island']['Count'])
         if grind_count == 0:
             grind_count = 9999
+        window.append(f)
         while grind_count > 0:
             General.void_island_grind(window)
             print('Void Island Completed', file=f)
@@ -116,57 +134,38 @@ def main():
 if __name__ == "__main__":
     main()
 
-
-    # title = 'KakiRaid'
-    # window = General.get_window_coordinate(title)
-    # print(window)
-    # success_continue_diff = [957 - 245, 874 - 123]
-    # pyautogui.click(window[0] + success_continue_diff[0], window[1] + success_continue_diff[1], duration=0.5)
-    # void_complete_img_diff = [759 - 245, 842 - 123, 1160 - 245, 900 - 123]
-    # void_complete_img = ImageGrab.grab(bbox=(window[0] + void_complete_img_diff[0],
-    #                                          window[1] + void_complete_img_diff[1],
-    #                                          window[0] + void_complete_img_diff[2],
-    #                                          window[1] + void_complete_img_diff[3]))
-    # void_complete_img.save('void_complete.jpg', 'JPEG')
-
-    # General.doClick(367 - 246, 889 - 123)
-    # General.doClick(100, 700)
-
-    # start_time = time.time()
-    # f = open('Kakilog.log', 'a+', encoding='utf-8')
-    # now = datetime.now()
-    # print("Log started: ", now, file=f)
-    # # read config file
-    # config = configparser.ConfigParser()
-    # config.read('config.ini', encoding='utf-8')
-    # title = 'KakiRaid'
-    # window = General.get_window_coordinate(title)
-    # print(window)
-    # if int(config['DEFAULT']['AdjustWindow']) == 1:
-    #     General.adjust_window(title, [0, 0])
-    # elif int(config['DEFAULT']['AdjustWindow']) == 2:
-    #     General.adjust_window(title, [245, 123])
-    # window = General.get_window_coordinate(title)  # x, y, w, h
-    # window.append(start_time)  # index 4
     #
-    # auto_legend_count = int(config['DEFAULT']['AutoLegendCount'])
-    # if int(config['DEFAULT']['ModeSelection']) == 0:
-    #     count = 0
-    #     max_count = int(config['DEFAULT']['MainLoopCount'])
-    #     current_floor = 0
-    #     stat = dict()
-    #     stat['Total_Resources'] = 0
-    #     stat['Total_Monster'] = 0
-    #     stat['Total_Loot_Curse'] = 0
-    #     stat['Total_Loot_Other'] = 0
-    #     stat['Total_Camp'] = 0
-    #     stat['Total_Ruin'] = 0
-    #     window.append(stat)  # index 5
-    #     window.append(config)  # index 6
-    #     window.append(f)
-    # General.curse_page_detect(window)
-    # General.map_management(window)
-    # General.resource_completion_detect(window)
+    # title = 'KakiRaid'
+    # window = General.get_window_coordinate(title)
+
+    # print(window)
+    # General.void_map_management(window)
+
+
+    # pyautogui.moveTo(x=597 - 245 + location[0] + window[0], y=223 - 123 + location[1] + window[1], duration=0.5)
+    # pyautogui.moveTo(x=1322, y=606, duration=0.5)
+    # x = round((1322 - 658) / 95)
+    # print(x)
+    # confirm_counter = 8
+    # confirm_flag = 0
+    # toggle_flag = 0
+    # while confirm_counter > 0:
+    #     time.sleep(5)
+    #     confirm_flag = General.confirm_detect(window)
+    #     if confirm_flag is True:
+    #         toggle_flag = 1
+    #     confirm_counter -= 1
+    # time.sleep(60)  # wait for battle finish
+    # if confirm_flag == 0 and toggle_flag == 1:
+    #     General.toggle_auto_path_finding(window)
+
+    # upper_map_diff = [287 - 245, 854 - 123, 441 - 245, 914 - 123]
+    # upper_map_img = ImageGrab.grab(bbox=(window[0] + upper_map_diff[0],
+    #                                      window[1] + upper_map_diff[1],
+    #                                      window[0] + upper_map_diff[2],
+    #                                      window[1] + upper_map_diff[3]))
+    # upper_map_img.save('Map_Button.jpg', 'JPEG')
+
     # try:
     #     while True:
     #         x, y = pyautogui.position()

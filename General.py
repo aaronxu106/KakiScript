@@ -8,12 +8,16 @@ import cv2
 from sklearn.cluster import KMeans
 import os
 import os.path
+import numpy as np
 from os import path
 import imagehash
 import copy
 import configparser
 import sys
 import smtplib
+from datetime import datetime
+
+# version 1.4.1, By Signal
 
 
 class MapTile:
@@ -167,11 +171,28 @@ def failure_detect(window):
         print('Time elapsed:', file=f)
         print('{:02d}:{:02d}:{:02d}'.format(elapsed_time // 3600, (elapsed_time % 3600 // 60), elapsed_time % 60),
               file=f)
+        # ctypes.windll.user32.MessageBoxW(0, 'Battle Failed, Quitting Program..', 'Message', 0x1000)
         time.sleep(1)
         send_email('Kaki battle failed, quit program.')
         sys.exit()
         #  [1205, 723] 继续, [1412, 716] 离开
         # To be added, auto-save and re-start a new session?
+
+
+def confirm_detect(window):
+    confirm_diff = [969 - 245, 635 - 123, 1123 - 245, 695 - 123]
+    confirm_img_1 = ImageGrab.grab(bbox=(window[0] + confirm_diff[0], window[1] + confirm_diff[1],
+                                         window[0] + confirm_diff[2], window[1] + confirm_diff[3]))
+    confirm_img_1.save('confirm_img_1.jpg', 'JPEG')
+    time.sleep(0.2)
+    im1_hash = imagehash.average_hash(Image.open('confirm_img_1.jpg'))
+    im2_hash = imagehash.average_hash(Image.open('Ref\\confirm_img_1_ref.jpg'))
+    if abs(im1_hash - im2_hash) <= 3:
+        pyautogui.click(x=1045 - 245 + window[0], y=668 - 123 + window[1], duration=0.8)
+        print('Resolving confirm window.')  # to be removed
+        return True
+    else:
+        return False
 
 
 def get_curse_image(window):
@@ -190,16 +211,20 @@ def get_curse_image(window):
     return ['curse_img_1.jpg', 'curse_img_2.jpg', 'curse_img_3.jpg']
 
 
-def parse_curse_image(curses, keys):
+def parse_curse_image(curses, keys, count=2):
     try:
         curse1 = baidu_ocr(curses[0], keys)
         curse2 = baidu_ocr(curses[1], keys)
         curse3 = baidu_ocr(curses[2], keys)
     except:
         time.sleep(5)  # in case parse failed
-        curse1 = parse_curse_image(curses, keys)[0]
-        curse2 = parse_curse_image(curses, keys)[1]
-        curse3 = parse_curse_image(curses, keys)[2]
+        if count > 0:
+            curses = parse_curse_image(curses, keys, count-1)
+            curse1 = curses[0]
+            curse2 = curses[1]
+            curse3 = curses[2]
+        else:
+            return [0, 0, 0]
     return [curse1, curse2, curse3]
 
 
@@ -209,10 +234,8 @@ def curse_page_detect(window, count=0):
         curse_page_diff = [692-274, 177-46, 1285-274, 278-46]
         curse_page_image = ImageGrab.grab(bbox=(window[0] + curse_page_diff[0], window[1] + curse_page_diff[1],
                                                 window[0] + curse_page_diff[2], window[1] + curse_page_diff[3]))
-        if path.exists('curse_page_image.jpg'):
-            os.remove('curse_page_image.jpg')
-        time.sleep(0.5)
         curse_page_image.save('curse_page_image.jpg', 'JPEG')
+        time.sleep(0.5)
         im1_hash = imagehash.average_hash(Image.open('curse_page_image.jpg'))
         im2_hash = imagehash.average_hash(Image.open('Ref\\curse_page_image_ref.jpg'))
         if abs(im1_hash - im2_hash) <= 3:
@@ -223,6 +246,7 @@ def curse_page_detect(window, count=0):
     curse_page_image = ImageGrab.grab(bbox=(window[0] + curse_page_diff[0], window[1] + curse_page_diff[1],
                                             window[0] + curse_page_diff[2], window[1] + curse_page_diff[3]))
     curse_page_image.save('curse_page_image.jpg', 'JPEG')
+    time.sleep(0.5)
     im1_hash = imagehash.average_hash(Image.open('curse_page_image.jpg'))
     im2_hash = imagehash.average_hash(Image.open('Ref\\curse_page_image_ref.jpg'))
 
@@ -359,18 +383,18 @@ def stuck_detect(window):
 
 def toggle_auto_path_finding(window):
     toggle_diff = [1607-236, 810-123]
-    time.sleep(0.5)
+    time.sleep(0.2)
     pyautogui.click(x=window[0] + toggle_diff[0], y=window[1] + toggle_diff[1])
 
 
 def map_management(window):  # window [x, y, w, h, start.time, stat(dict)]
     # add check to see if at map selection page
-    time.sleep(1.5)
+    time.sleep(1.8)
     map_button_diff = [367-246, 889-123]
     map_coordinate = dict()
     pyautogui.moveTo(window[0] + map_button_diff[0], window[1] + map_button_diff[1], duration=0.3)
     pyautogui.click()
-    time.sleep(1)
+    time.sleep(0.7)
     map_tile_0_0_diff = [646-246, 401-123, 734-246, 549-123]
     map_coordinate[(0, 0)] = [int(map_tile_0_0_diff[0] + map_tile_0_0_diff[2]) // 2 + window[0],
                               int(map_tile_0_0_diff[1] + map_tile_0_0_diff[3]) // 2 + window[1]]
@@ -541,6 +565,137 @@ def map_management(window):  # window [x, y, w, h, start.time, stat(dict)]
     f.flush()
 
 
+def void_map_management(window):
+    map_button_diff = [367-246, 889-123]
+    map_coordinate = dict()
+    pyautogui.moveTo(window[0] + map_button_diff[0], window[1] + map_button_diff[1], duration=0.3)
+    pyautogui.click()
+    time.sleep(0.2)
+    for i in range(10):
+        time.sleep(0.1)
+        pyautogui.vscroll(-1)
+    pyautogui.moveTo(x=748-245+window[0], y=554-123+window[1], duration=0.5)
+    pyautogui.mouseDown()
+    time.sleep(0.5)
+    pyautogui.dragRel(xOffset=-250, yOffset=369, duration=3, mouseDownUp=False)
+    time.sleep(0.5)
+    pyautogui.mouseUp()
+    upper_map_diff = [597 - 245, 223 - 123, 1570 - 245, 825 - 123]
+    upper_map_img = ImageGrab.grab(bbox=(window[0] + upper_map_diff[0],
+                                         window[1] + upper_map_diff[1],
+                                         window[0] + upper_map_diff[2],
+                                         window[1] + upper_map_diff[3]))
+    upper_map_img.save('upper_map.jpg', 'JPEG')
+
+    pyautogui.moveTo(x=1340 - 245 + window[0], y=933 - 123 + window[1], duration=0.5)
+    pyautogui.mouseDown()
+    time.sleep(0.5)
+    pyautogui.dragRel(xOffset=-462 - 245 + window[0], yOffset=-650 - 123 + window[1], duration=3, mouseDownUp=False)
+    time.sleep(0.5)
+    pyautogui.mouseUp()
+    lower_map_diff = [256 - 245, 289 - 123, 1234 - 245, 947 - 123]
+    lower_map_img = ImageGrab.grab(bbox=(window[0] + lower_map_diff[0],
+                                         window[1] + lower_map_diff[1],
+                                         window[0] + lower_map_diff[2],
+                                         window[1] + lower_map_diff[3]))
+    lower_map_img.save('lower_map.jpg', 'JPEG')
+    upper_result = find_image('upper_map.jpg', 'Map//void_loot.jpg')
+    lower_result = find_image('lower_map.jpg', 'Map//void_loot.jpg')
+    if upper_result[0] > lower_result[0]:
+        pyautogui.moveTo(x=1340 - 462 - 245 + window[0], y=933 - 650 - 123 + window[1], duration=0.5)
+        pyautogui.mouseDown()
+        time.sleep(0.5)
+        pyautogui.dragRel(xOffset=462 - 245 + window[0], yOffset=650 - 123 + window[1], duration=3, mouseDownUp=False)
+        time.sleep(0.5)
+        pyautogui.mouseUp()
+        void_loot_x = 597 - 245 + upper_result[1][0] + window[0] + 29
+        void_loot_y = 223 - 123 + upper_result[1][1] + window[1] + 52
+
+        map_start = [658 - 245 + window[0], 767 - 123 + window[1]]
+
+        distance_x = round((void_loot_x - map_start[0]) / 95)
+        distance_y = -round((void_loot_y - map_start[1]) / 54)
+        mark_route_diff = [524 - 246, 887 - 123]
+        pyautogui.click(x=mark_route_diff[0] + window[0], y=mark_route_diff[1] + window[1], duration=0.5)
+        a = round((distance_x + distance_y) / 2)
+        b = round((distance_x - distance_y) / 2)
+
+        for i in range(a + 1):
+            pyautogui.click(x=map_start[0] + 95 * i, y=map_start[1] - 54 * i, duration=0.25)
+        for j in range(b):
+            # print(map_start[0] + 95 * a + j + 1, map_start[1] - 54 * a + 54 * (j + 1))
+            pyautogui.click(x=map_start[0] + 95 * a + 95 * (j + 1),
+                            y=map_start[1] - 54 * a + 54 * (j + 1), duration=0.25)
+        # close map and toggle auto
+        pyautogui.moveTo(window[0] + map_button_diff[0], window[1] + map_button_diff[1], duration=0.2)
+        pyautogui.click()
+        time.sleep(0.5)
+        toggle_auto_path_finding(window)
+    else:
+        void_loot_x = 256 - 245 + lower_result[1][0] + window[0] + 29
+        void_loot_y = 289 - 123 + lower_result[1][1] + window[1] + 52
+        map_start = [318 - 245 + window[0], 400 - 123 + window[1]]
+
+        distance_x = round((void_loot_x - map_start[0]) / 95)
+        distance_y = round((void_loot_y - map_start[1]) / 54)
+        mark_route_diff = [524 - 246, 887 - 123]
+        pyautogui.click(x=mark_route_diff[0] + window[0], y=mark_route_diff[1] + window[1], duration=0.5)
+        a = round((distance_x + distance_y) / 2)
+        b = round((distance_x - distance_y) / 2)
+
+        for i in range(a + 1):
+            pyautogui.click(x=map_start[0] + 95 * i, y=map_start[1] + 54 * i, duration=0.5)
+        for j in range(b):
+            # print(map_start[0] + 95 * a + j + 1, map_start[1] + 54 * a + 54 * (j + 1))
+            pyautogui.click(x=map_start[0] + 95 * a + 95 * (j + 1),
+                            y=map_start[1] + 54 * a - 54 * (j + 1), duration=0.5)
+        # close map and toggle auto
+        pyautogui.moveTo(window[0] + map_button_diff[0], window[1] + map_button_diff[1], duration=0.2)
+        pyautogui.click()
+        time.sleep(0.5)
+        toggle_auto_path_finding(window)
+    pass
+
+
+# def find_image(im_file, tpl_file):
+#     im = cv2.imread(im_file)
+#     tpl = cv2.imread(tpl_file)
+#     im = np.atleast_3d(im)
+#     tpl = np.atleast_3d(tpl)
+#     H, W, D = im.shape[:3]
+#     h, w = tpl.shape[:2]
+#
+#     # Integral image and template sum per channel
+#     sat = im.cumsum(1).cumsum(0)
+#     tplsum = np.array([tpl[:, :, i].sum() for i in range(D)])
+#
+#     # Calculate lookup table for all the possible windows
+#     iA, iB, iC, iD = sat[:-h, :-w], sat[:-h, w:], sat[h:, :-w], sat[h:, w:]
+#     lookup = iD - iB - iC + iA
+#     # Possible matches
+#     possible_match = np.where(np.logical_and.reduce([lookup[..., i] == tplsum[i] for i in range(D)]))
+#     # possible_match = np.where(np.logical_and.reduce([abs(lookup[..., i] - tplsum[i]) <= 0.1*tplsum[i]
+#     #                                                 for i in range(D)]))
+#
+#     # Find exact match
+#     for y, x in zip(*possible_match):
+#         if np.all(im[y+1:y+h+1, x+1:x+w+1] == tpl):
+#             return y+1, x+1
+#
+#     return 0, 0
+
+
+def find_image(im_file, tpl_file):
+    im = cv2.imread(im_file)
+    tpl = cv2.imread(tpl_file)
+    method = cv2.TM_CCOEFF_NORMED
+    result = cv2.matchTemplate(im, tpl, method)
+    _, maxVal, _, maxLoc = cv2.minMaxLoc(result)
+    # minVal, maxVal, minLoc, maxLoc = cv.MinMaxLoc(result)
+    #  CV_TM_SQDIFF || CV_TM_SQDIFF_NORMED, match = min, other method, match = max
+    return [maxVal, maxLoc]
+
+
 def build_tree(map_list, coordinate_list):
     start = MapTile('start', [-1, 0])
     end = MapTile('end', [0, 5])
@@ -620,8 +775,33 @@ def auto_legend(window, counter):
         count += 1
 
 
+def map_page_detect(window):
+    time.sleep(1)
+    counter = 4
+    success = 0
+    while counter > 0:
+        time.sleep(2.7)
+        map_button_diff = [287 - 245, 854 - 123, 441 - 245, 914 - 123]
+        map_button_img = ImageGrab.grab(bbox=(window[0] + map_button_diff[0],
+                                             window[1] + map_button_diff[1],
+                                             window[0] + map_button_diff[2],
+                                             window[1] + map_button_diff[3]))
+        map_button_img.save('map_button.jpg', 'JPEG')
+        time.sleep(0.2)
+        im_hash = imagehash.average_hash(Image.open('map_button.jpg'))
+        im_hash_ref = imagehash.average_hash(Image.open('Ref//map_button_ref.jpg'))
+        if abs(im_hash_ref - im_hash) < 4:
+            success += 1
+        counter -= 1
+    if success == 4:
+        return True
+    else:
+        return False
+
+
 def void_island_grind(window):
-    time.sleep(2)
+    time.sleep(1)
+    f = window[5]
     config = configparser.ConfigParser()
     try:
         config.read('config.ini', encoding='utf-8')
@@ -642,34 +822,35 @@ def void_island_grind(window):
                                               window[0] + full_inventory_img_diff[2],
                                               window[1] + full_inventory_img_diff[3]))
     full_inventory_img.save('inventory_check.jpg', 'JPEG')
+    time.sleep(0.1)
     im_hash = imagehash.average_hash(Image.open('inventory_check.jpg'))
     im_hash_ref = imagehash.average_hash(Image.open('Ref\\inventory_check_ref.jpg'))
     if abs(im_hash - im_hash_ref) > 4:
-        time.sleep(0.5)
         void_island_diff = [328 - 245, 560 - 123]
-        pyautogui.click(void_island_diff[0] + window[0], void_island_diff[1] + window[1], duration=0.5)
+        pyautogui.click(void_island_diff[0] + window[0], void_island_diff[1] + window[1], duration=1)
         level_inc_diff = [1149 - 245, 716 - 123]
         time.sleep(1)
         if level > 1:
             pyautogui.click(level_inc_diff[0] + window[0], level_inc_diff[1] + window[1], clicks=level,
                             interval=0.5)
+        time.sleep(0.5)
         grind_start_diff = [1103 - 245, 831 - 123]
-        pyautogui.click(grind_start_diff[0] + window[0], grind_start_diff[1] + window[1], duration=0.8)
+        pyautogui.click(grind_start_diff[0] + window[0], grind_start_diff[1] + window[1], duration=1)
         team_select_diff = [859 - 245, 748 - 123]
-        pyautogui.click(team_select_diff[0] + window[0], team_select_diff[1] + window[1], duration=0.8)
+        pyautogui.click(team_select_diff[0] + window[0], team_select_diff[1] + window[1], duration=1)
 
         melee_group_diff = [596 - 245, 624 - 123]
         first_kaki_diff = [365 - 245, 766 - 123]
-        pyautogui.click(melee_group_diff[0] + window[0], melee_group_diff[1] + window[1], duration=0.8)
-        time.sleep(1)
+        pyautogui.click(melee_group_diff[0] + window[0], melee_group_diff[1] + window[1], duration=1)
+        time.sleep(0.5)
         move_counter = 0
         for i in range(len(melee_kaki_index)):  # max 13 kaki, in case of new kaki, need to modify the if statement
             if (int(melee_kaki_index[i]) - 6 * move_counter) > 7:
                 pyautogui.moveTo(first_kaki_diff[0] + 150 * 6 + window[0], first_kaki_diff[1] + window[1])
                 pyautogui.mouseDown()
-                time.sleep(1)
+                time.sleep(0.5)
                 pyautogui.dragRel(xOffset=-150 * 6, yOffset=0, duration=3, mouseDownUp=False)
-                time.sleep(1)
+                time.sleep(0.5)
                 pyautogui.mouseUp()
                 move_counter += 1
                 pyautogui.click(first_kaki_diff[0] +
@@ -686,15 +867,15 @@ def void_island_grind(window):
             if (int(range_kaki_index[i]) - 6 * move_counter) > 13:
                 pyautogui.moveTo(first_kaki_diff[0] + 150 * 6 + window[0], first_kaki_diff[1] + window[1])
                 pyautogui.mouseDown()
-                time.sleep(1)
+                time.sleep(0.5)
                 pyautogui.dragRel(xOffset=-150 * 6, yOffset=0, duration=3, mouseDownUp=False)
-                time.sleep(1)
+                time.sleep(0.5)
                 pyautogui.mouseUp()
                 pyautogui.moveTo(first_kaki_diff[0] + 150 * 6 + window[0], first_kaki_diff[1] + window[1])
                 pyautogui.mouseDown()
-                time.sleep(1)
+                time.sleep(0.5)
                 pyautogui.dragRel(xOffset=-150 * 6, yOffset=0, duration=3, mouseDownUp=False)
-                time.sleep(1)
+                time.sleep(0.5)
                 pyautogui.mouseUp()
                 move_counter += 2
                 pyautogui.click(first_kaki_diff[0] +
@@ -703,9 +884,9 @@ def void_island_grind(window):
             elif (int(range_kaki_index[i]) - 6 * move_counter) > 7:
                 pyautogui.moveTo(first_kaki_diff[0] + 150 * 6 + window[0], first_kaki_diff[1] + window[1])
                 pyautogui.mouseDown()
-                time.sleep(0.8)
+                time.sleep(0.5)
                 pyautogui.dragRel(xOffset=-150 * 6, yOffset=0, duration=3, mouseDownUp=False)
-                time.sleep(0.8)
+                time.sleep(0.5)
                 pyautogui.mouseUp()
                 move_counter += 1
                 pyautogui.click(first_kaki_diff[0] +
@@ -718,9 +899,9 @@ def void_island_grind(window):
             elif (int(range_kaki_index[i]) - 6 * move_counter) <= 0:
                 pyautogui.moveTo(first_kaki_diff[0] + window[0], first_kaki_diff[1] + window[1])
                 pyautogui.mouseDown()
-                time.sleep(0.8)
+                time.sleep(0.5)
                 pyautogui.dragRel(xOffset=150 * 6, yOffset=0, duration=3, mouseDownUp=False)
-                time.sleep(0.8)
+                time.sleep(0.5)
                 pyautogui.mouseUp()
                 move_counter -= 1
                 pyautogui.click(first_kaki_diff[0] +
@@ -730,26 +911,28 @@ def void_island_grind(window):
         pyautogui.click(window[0] + confirm_team_diff[0], window[1] + confirm_team_diff[1], duration=0.5)
         go_button_diff = [1460 - 245, 839 - 123]
         pyautogui.click(window[0] + go_button_diff[0], window[1] + go_button_diff[1], duration=0.5)
-        time.sleep(6.5)
+        time.sleep(6)
         toggle_auto_path_finding(window)
         time.sleep(4.5)
         select_blessing_diff = [1047 - 245, 740 - 123]
         pyautogui.click(window[0] + select_blessing_diff[0], window[1] + select_blessing_diff[1], duration=0.5)
-        time.sleep(60*restart - 10)
-        check_counter = 60*5
-
-        while check_counter > 0:
-            time.sleep(1)
+        check_counter = restart * 60
+        while True:
+            time.sleep(2)
+            resource_completion_detect(window, 2)
+            map_page_result = map_page_detect(window)
+            if map_page_result:
+                void_map_management(window)
             void_complete_img_diff = [759 - 245, 842 - 123, 1160 - 245, 900 - 123]
             void_complete_img = ImageGrab.grab(bbox=(window[0] + void_complete_img_diff[0],
                                                      window[1] + void_complete_img_diff[1],
                                                      window[0] + void_complete_img_diff[2],
                                                      window[1] + void_complete_img_diff[3]))
             void_complete_img.save('void_complete.jpg', 'JPEG')
-            time.sleep(0.5)
+            time.sleep(0.2)
             im_hash_void_complete = imagehash.average_hash(Image.open('void_complete.jpg'))
             im_hash_void_complete_ref = imagehash.average_hash(Image.open('Ref\\void_complete_ref.jpg'))
-            if abs(im_hash_void_complete - im_hash_void_complete_ref) < 4:
+            if abs(im_hash_void_complete - im_hash_void_complete_ref) < 3:
                 time.sleep(1.5)
                 success_continue_diff = [957 - 245, 874 - 123]
                 pyautogui.click(window[0] + success_continue_diff[0], window[1] + success_continue_diff[1],
@@ -766,12 +949,29 @@ def void_island_grind(window):
                 time.sleep(1.5)  # ???
                 pyautogui.click(window[0] + success_continue_diff[0], window[1] + success_continue_diff[1],
                                 duration=0.5)
+                now = datetime.now()
+                print(now, file=f)
+                f.flush()
                 time.sleep(10)
                 break
             check_counter -= 1
-        if check_counter == 0:
-            send_email('Void_Island Stuck, quit program.')
-            sys.exit()
+            if check_counter <= 0:
+                confirm_counter = 8
+                confirm_flag = 0
+                toggle_flag = 0
+                while confirm_counter > 0:
+                    time.sleep(1.5)
+                    confirm_flag = confirm_detect(window)
+                    if confirm_flag is True:
+                        toggle_flag = 1
+                    confirm_counter -= 1
+                time.sleep(20)  # wait for battle finish
+                if confirm_flag == 0 and toggle_flag == 1:
+                    toggle_auto_path_finding(window)
+                    check_counter = 60
+                else:
+                    send_email('Void_Island Stuck, quit program.')
+                    sys.exit()
     else:
         send_email('Inventory Full!')
         sys.exit()
@@ -779,7 +979,7 @@ def void_island_grind(window):
 
 
 def resource_completion_detect(window, count=0):
-    time.sleep(2.5)
+    time.sleep(2)
     first_track_diff = [729-245, 716-123, 794-245, 782-123]  # fail
     second_track_diff = [449-245, 716-123, 514-245, 782-123]  # success
     first_track_img = ImageGrab.grab(bbox=(window[0] + first_track_diff[0], window[1] + first_track_diff[1],
@@ -792,20 +992,23 @@ def resource_completion_detect(window, count=0):
     im1_hash_ref = imagehash.average_hash(Image.open('Ref\\first_track_img_ref.jpg'))
     im2_hash = imagehash.average_hash(Image.open('second_track_img.jpg'))
     im2_hash_ref = imagehash.average_hash(Image.open('Ref\\second_track_img_ref.jpg'))
-    if abs(im1_hash - im1_hash_ref) <= 3 or abs(im2_hash - im2_hash_ref) <= 3:  # fail here?
-        pyautogui.click(window[0] + window[2] // 2, window[1] + window[3] // 8 * 7, duration=0.25)
+    if abs(im1_hash - im1_hash_ref) <= 5 or abs(im2_hash - im2_hash_ref) <= 5:  # fail here?
+        pyautogui.click(window[0] + window[2] // 2, window[1] + window[3] // 8 * 7, duration=0.3)
         count += 1
         if count < 2:
             resource_completion_detect(window, count)
         return True
     else:
+        time.sleep(1)
         return False
 
 
 # def send_email(message):
 #     config = configparser.ConfigParser()
-#     config.read('config.ini', encoding='utf-8')
-#
+#     try:
+#         config.read('config.ini', encoding='utf-8')
+#     except:
+#         config.read('config.ini', encoding='utf-8-sig')
 #     gmail_user = config['Email']['email']
 #
 #     sent_from = "aaron.luke927@gmail.com"
@@ -851,6 +1054,7 @@ def send_email(message):
         s.sendmail(sender, receiver, msg.as_string())
     except:
         pass
+
 
 #
 # def doClick(cx, cy):
