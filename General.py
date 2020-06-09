@@ -16,9 +16,9 @@ import configparser
 import sys
 import smtplib
 from datetime import datetime
-from skimage import io
+# from skimage import io
 
-# version 1.4.1, By Signal
+# version 1.6.0, By Signal
 
 
 class MapTile:
