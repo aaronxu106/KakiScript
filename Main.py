@@ -86,9 +86,8 @@ def main():
             else:
                 current_floor += 5
                 print('Current Floor: ' + str(current_floor) + '\n', file=f)
-                f.close()
+                f.flush()
             time.sleep(1)
-
     elif int(config['DEFAULT']['ModeSelection']) == 1:
         General.auto_legend(window, auto_legend_count)
     elif int(config['DEFAULT']['ModeSelection']) == 2:
