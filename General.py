@@ -1,6 +1,6 @@
 import win32gui
 import pyautogui
-from PIL import Image, ImageGrab
+from PIL import Image, ImageGrab, ImageDraw
 from aip import AipOcr
 import time
 import re
@@ -16,6 +16,7 @@ import configparser
 import sys
 import smtplib
 from datetime import datetime
+from skimage import io
 
 # version 1.4.1, By Signal
 
@@ -189,7 +190,6 @@ def confirm_detect(window):
     im2_hash = imagehash.average_hash(Image.open('Ref\\confirm_img_1_ref.jpg'))
     if abs(im1_hash - im2_hash) <= 3:
         pyautogui.click(x=1045 - 245 + window[0], y=668 - 123 + window[1], duration=0.8)
-        print('Resolving confirm window.')  # to be removed
         return True
     else:
         return False
@@ -211,6 +211,35 @@ def get_curse_image(window):
     return ['curse_img_1.jpg', 'curse_img_2.jpg', 'curse_img_3.jpg']
 
 
+def auto_route_detect(window):
+    auto_route_diff = [1570 - 245, 773 - 123, 1645 - 245, 846 - 123]
+    auto_route_img = ImageGrab.grab(bbox=(window[0] + auto_route_diff[0],
+                                          window[1] + auto_route_diff[1],
+                                          window[0] + auto_route_diff[2],
+                                          window[1] + auto_route_diff[3]))
+    auto_route_img.save('auto_route.jpg', 'JPEG')
+    time.sleep(0.2)
+
+    # ref_on = cv2.imread("Ref//auto_route_on.png")
+    # ref_off = cv2.imread("Ref//auto_route_off.png")
+    # real_time = cv2.imread('auto_route.png')
+    # ref_on = circle_mask("Ref//auto_route_off.jpg")
+    ref_off = circle_mask("Ref//auto_route_off.jpg")
+    real_time = circle_mask("auto_route.jpg")
+    # average_color_on = np.average(np.average(ref_on, axis=0), axis=0)
+    average_color_off = np.average(np.average(ref_off, axis=0), axis=0)
+    # average_color_on = [90.54405776, 130.7070659015, 159.11014439]
+    # average_color_off = [82.04887079, 109.5601629, 131.79988893]
+    average_color_real_time = np.average(np.average(real_time, axis=0), axis=0)
+    # sum_on = 0
+    sum_off = 0
+    for i in range(2):
+        # sum_on += abs(average_color_real_time[i] - average_color_on[i])
+        sum_off += abs(average_color_real_time[i] - average_color_off[i])
+    if sum_off < 5:
+        toggle_auto_path_finding(window)
+
+
 def parse_curse_image(curses, keys, count=2):
     try:
         curse1 = baidu_ocr(curses[0], keys)
@@ -228,6 +257,36 @@ def parse_curse_image(curses, keys, count=2):
     return [curse1, curse2, curse3]
 
 
+def crop_circle_image(filename, destination_name):
+    img = Image.open(filename).convert("RGB")
+    npImage = np.array(img)
+    h, w = img.size
+
+    # Create same size alpha layer with circle
+    alpha = Image.new('L', img.size, 0)
+    draw = ImageDraw.Draw(alpha)
+    draw.pieslice([0, 0, h, w], 0, 360, fill=255)
+
+    # Convert alpha Image to numpy array
+    npAlpha = np.array(alpha)
+
+    # Add alpha layer to RGB
+    npImage = np.dstack((npImage, npAlpha))
+
+    # Save with alpha
+    Image.fromarray(npImage).save(destination_name)
+
+
+def circle_mask(filename):
+    im = cv2.imread(filename)
+    height, width, depth = im.shape
+    circle_img = np.zeros((height, width), np.uint8)
+    cv2.circle(circle_img, (width // 2, height // 2), 37, 1, thickness=-1)
+
+    masked_data = cv2.bitwise_and(im, im, mask=circle_img)
+    return masked_data
+
+
 def curse_page_detect(window, count=0):
     f = window[7]
     while count < 400:
@@ -240,8 +299,10 @@ def curse_page_detect(window, count=0):
         im2_hash = imagehash.average_hash(Image.open('Ref\\curse_page_image_ref.jpg'))
         if abs(im1_hash - im2_hash) <= 3:
             return True
-        time.sleep(1)
-        count += 1
+        else:
+            time.sleep(1)
+            count += 1
+
     curse_page_diff = [692 - 274, 177 - 46, 1285 - 274, 278 - 46]
     curse_page_image = ImageGrab.grab(bbox=(window[0] + curse_page_diff[0], window[1] + curse_page_diff[1],
                                             window[0] + curse_page_diff[2], window[1] + curse_page_diff[3]))
@@ -252,9 +313,11 @@ def curse_page_detect(window, count=0):
 
     if abs(im1_hash - im2_hash) <= 3:
         return True
-    print('Fail to detect curse page, quitting program..', file=f)
-    f.flush()
-    return False
+    else:
+        print('Fail to detect curse page, quitting program..', file=f)
+        f.flush()
+        return False
+
 
 
 def baidu_ocr(pic_file, keys):
@@ -560,7 +623,7 @@ def map_management(window):  # window [x, y, w, h, start.time, stat(dict)]
                         y=map_coordinate[tuple(item.coordinate)][1], duration=0.2)
     pyautogui.moveTo(window[0] + map_button_diff[0], window[1] + map_button_diff[1], duration=0.2)
     pyautogui.click()
-    toggle_auto_path_finding(window)
+    # toggle_auto_path_finding(window)
     print("Total map management time consumed: " + str(map_elapsed_time) + " seconds!", file=f)
     f.flush()
 
@@ -630,7 +693,7 @@ def void_map_management(window):
         pyautogui.moveTo(window[0] + map_button_diff[0], window[1] + map_button_diff[1], duration=0.2)
         pyautogui.click()
         time.sleep(0.5)
-        toggle_auto_path_finding(window)
+        # toggle_auto_path_finding(window)
     else:
         void_loot_x = 256 - 245 + lower_result[1][0] + window[0] + 29
         void_loot_y = 289 - 123 + lower_result[1][1] + window[1] + 52
@@ -776,25 +839,22 @@ def auto_legend(window, counter):
 
 
 def map_page_detect(window):
-    time.sleep(1)
-    counter = 4
-    success = 0
-    while counter > 0:
-        time.sleep(2.7)
-        map_button_diff = [287 - 245, 854 - 123, 441 - 245, 914 - 123]
-        map_button_img = ImageGrab.grab(bbox=(window[0] + map_button_diff[0],
-                                             window[1] + map_button_diff[1],
-                                             window[0] + map_button_diff[2],
-                                             window[1] + map_button_diff[3]))
-        map_button_img.save('map_button.jpg', 'JPEG')
-        time.sleep(0.2)
-        im_hash = imagehash.average_hash(Image.open('map_button.jpg'))
-        im_hash_ref = imagehash.average_hash(Image.open('Ref//map_button_ref.jpg'))
-        if abs(im_hash_ref - im_hash) < 4:
-            success += 1
-        counter -= 1
-    if success == 4:
+    map_button_diff = [287 - 245, 854 - 123, 441 - 245, 914 - 123]
+    map_button_img = ImageGrab.grab(bbox=(window[0] + map_button_diff[0],
+                                         window[1] + map_button_diff[1],
+                                         window[0] + map_button_diff[2],
+                                         window[1] + map_button_diff[3]))
+    map_button_img.save('map_button.jpg', 'JPEG')
+    time.sleep(0.2)
+    im_hash = imagehash.average_hash(Image.open('map_button.jpg'))
+    im_hash_ref = imagehash.average_hash(Image.open('Ref//map_button_ref.jpg'))
+    im_hash_close_ref = imagehash.average_hash(Image.open('Ref//map_button_close.jpg'))
+    if abs(im_hash_ref - im_hash) < 3:
         return True
+    elif abs(im_hash_close_ref - im_hash) < 3:
+        pyautogui.moveTo(window[0] + 367 - 246, window[1] + 889 - 123, duration=0.3)
+        pyautogui.click()
+        return False
     else:
         return False
 
@@ -916,13 +976,16 @@ def void_island_grind(window):
         time.sleep(4.5)
         select_blessing_diff = [1047 - 245, 740 - 123]
         pyautogui.click(window[0] + select_blessing_diff[0], window[1] + select_blessing_diff[1], duration=0.5)
-        check_counter = restart * 60
         while True:
             time.sleep(2)
-            resource_completion_detect(window, 2)
-            map_page_result = map_page_detect(window)
-            if map_page_result:
+            while confirm_detect(window):
+                time.sleep(1)
+            while not map_page_detect(window):
+                resource_completion_detect(window)
+            if start_floor_detect(window):
                 void_map_management(window)
+                auto_route_detect(window)
+                map_page_detect(window)
             void_complete_img_diff = [759 - 245, 842 - 123, 1160 - 245, 900 - 123]
             void_complete_img = ImageGrab.grab(bbox=(window[0] + void_complete_img_diff[0],
                                                      window[1] + void_complete_img_diff[1],
@@ -954,24 +1017,6 @@ def void_island_grind(window):
                 f.flush()
                 time.sleep(10)
                 break
-            check_counter -= 1
-            if check_counter <= 0:
-                confirm_counter = 8
-                confirm_flag = 0
-                toggle_flag = 0
-                while confirm_counter > 0:
-                    time.sleep(1.5)
-                    confirm_flag = confirm_detect(window)
-                    if confirm_flag is True:
-                        toggle_flag = 1
-                    confirm_counter -= 1
-                time.sleep(20)  # wait for battle finish
-                if confirm_flag == 0 and toggle_flag == 1:
-                    toggle_auto_path_finding(window)
-                    check_counter = 60
-                else:
-                    send_email('Void_Island Stuck, quit program.')
-                    sys.exit()
     else:
         send_email('Inventory Full!')
         sys.exit()
@@ -992,68 +1037,80 @@ def resource_completion_detect(window, count=0):
     im1_hash_ref = imagehash.average_hash(Image.open('Ref\\first_track_img_ref.jpg'))
     im2_hash = imagehash.average_hash(Image.open('second_track_img.jpg'))
     im2_hash_ref = imagehash.average_hash(Image.open('Ref\\second_track_img_ref.jpg'))
-    if abs(im1_hash - im1_hash_ref) <= 5 or abs(im2_hash - im2_hash_ref) <= 5:  # fail here?
+    if abs(im1_hash - im1_hash_ref) <= 5 or abs(im2_hash - im2_hash_ref) <= 5:
         pyautogui.click(window[0] + window[2] // 2, window[1] + window[3] // 8 * 7, duration=0.3)
-        count += 1
-        if count < 2:
-            resource_completion_detect(window, count)
         return True
     else:
-        time.sleep(1)
         return False
 
 
-# def send_email(message):
-#     config = configparser.ConfigParser()
-#     try:
-#         config.read('config.ini', encoding='utf-8')
-#     except:
-#         config.read('config.ini', encoding='utf-8-sig')
-#     gmail_user = config['Email']['email']
-#
-#     sent_from = "aaron.luke927@gmail.com"
-#     to = [gmail_user]
-#     subject = 'KakiScript Failed'
-#     body = message
-#
-#     email_text = """From: %s\nTo: %s\nSubject: %s\n\n%s
-#                  """ % (sent_from, ", ".join(to), subject, body)
-#
-#     try:
-#         server = smtplib.SMTP_SSL('smtp.gmail.com', 465)
-#         server.ehlo()
-#         server.login("aaron.luke927@gmail.com", "Asdfasdf2345!!!")
-#         server.sendmail(sent_from, to, email_text)
-#         server.close()
-#     except Exception as e:
-#         pass
+def start_floor_detect(window):
+    map_start_diff = [922 - 245, 187 - 123, 996 - 245, 210 - 123]
+    map_start_img = ImageGrab.grab(bbox=(window[0] + map_start_diff[0],
+                                         window[1] + map_start_diff[1],
+                                         window[0] + map_start_diff[2],
+                                         window[1] + map_start_diff[3]))
+    map_start_img.save('map_start.jpg', 'JPEG')
+    time.sleep(0.2)
+    im_hash = imagehash.average_hash(Image.open('map_start.jpg'))
+    im_hash_ref = imagehash.average_hash(Image.open('Ref\\map_start.jpg'))
+    if abs(im_hash - im_hash_ref) < 2:
+        return True
+    else:
+        return False
 
 
 def send_email(message):
+    config = configparser.ConfigParser()
     try:
-        config = configparser.ConfigParser()
-        try:
-            config.read('config.ini', encoding='utf-8')
-        except:
-            config.read('config.ini', encoding='utf-8-sig')
-
-        email_user = config['Email']['email']
-
-        host = 'smtp.163.com'
-        port = 465
-        sender = 'aaron_luke927@163.com'
-        pwd = 'WWFWTEMTFYWSMOVD'
-        receiver = email_user
-        body = message
-        msg = MIMEText(body, 'html')
-        msg['subject'] = 'KakiScript Failed!'
-        msg['from'] = sender
-        msg['to'] = receiver
-        s = smtplib.SMTP_SSL(host, port)
-        s.login(sender, pwd)
-        s.sendmail(sender, receiver, msg.as_string())
+        config.read('config.ini', encoding='utf-8')
     except:
+        config.read('config.ini', encoding='utf-8-sig')
+    gmail_user = config['Email']['email']
+
+    sent_from = "aaron.luke927@gmail.com"
+    to = [gmail_user]
+    subject = 'KakiScript Failed'
+    body = message
+
+    email_text = """From: %s\nTo: %s\nSubject: %s\n\n%s
+                 """ % (sent_from, ", ".join(to), subject, body)
+
+    try:
+        server = smtplib.SMTP_SSL('smtp.gmail.com', 465)
+        server.ehlo()
+        server.login("aaron.luke927@gmail.com", "Asdfasdf2345!!!")
+        server.sendmail(sent_from, to, email_text)
+        server.close()
+    except Exception as e:
         pass
+
+
+# def send_email(message):
+#     try:
+#         config = configparser.ConfigParser()
+#         try:
+#             config.read('config.ini', encoding='utf-8')
+#         except:
+#             config.read('config.ini', encoding='utf-8-sig')
+#
+#         email_user = config['Email']['email']
+#
+#         host = 'smtp.163.com'
+#         port = 465
+#         sender = 'aaron_luke927@163.com'
+#         pwd = 'WWFWTEMTFYWSMOVD'
+#         receiver = email_user
+#         body = message
+#         msg = MIMEText(body, 'html')
+#         msg['subject'] = 'KakiScript Failed!'
+#         msg['from'] = sender
+#         msg['to'] = receiver
+#         s = smtplib.SMTP_SSL(host, port)
+#         s.login(sender, pwd)
+#         s.sendmail(sender, receiver, msg.as_string())
+#     except:
+#         pass
 
 
 #

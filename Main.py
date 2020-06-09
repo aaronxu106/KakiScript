@@ -45,55 +45,17 @@ def main():
         window.append(f)
         keys = [window[6]['Baidu_API']['API_ID'], window[6]['Baidu_API']['API_KEY'],
                 window[6]['Baidu_API']['SECRET_KEY']]
-        while count < max_count:
+        # while count < max_count:
+        while True:
             print('\n', file=f)
             f.flush()
             temp_start_time = time.time()
-            if count != 0:
-                if current_floor > 500:
-                    time.sleep(130)
-                elif current_floor > 400:
-                    time.sleep(120)
-                elif current_floor > 300:
-                    time.sleep(95)
-                elif current_floor > 200:
-                    time.sleep(85)
-                else:
-                    time.sleep(75)
-            General.failure_detect(window)
-            curse_page_result = General.curse_page_detect(window)
+            General.failure_detect(window)  # thread
+            curse_page_result = General.curse_page_detect(window, 400)  # thread
             if not curse_page_result:
-                confirm_counter = 8
-                confirm_flag = 0
-                toggle_flag = 0
-                while confirm_counter > 0:
-                    time.sleep(1.5)
-                    confirm_flag = General.confirm_detect(window)
-                    if confirm_flag is True:
-                        toggle_flag = 1
-                    confirm_counter -= 1
-                time.sleep(60)  # wait for battle finish
-                if confirm_flag == 0 and toggle_flag == 1:
-                    General.toggle_auto_path_finding(window)
-                stuck_result = General.stuck_detect(window)
-                time.sleep(180)  # wait for complete map
-                curse_page_result = General.curse_page_detect(window, 400)  # 400 as count to bypass repeated detect
-                while stuck_result != 0 and not curse_page_result:
-                    if stuck_result == 1:
-                        # To add support for network turbulence and portal stuck?
-                        print('Progress stuck at unknown, quitting program..', file=f)
-                        f.close()
-                        General.send_email('Kaki script stuck, quit program.')
-                        sys.exit()
-                    elif stuck_result == 2:
-                        print('Progress stuck at relic augmentation, try resolving..', file=f)
-                        pyautogui.click(x=window[0] + (320 - 245), y=window[1] + (213 - 123), duration=0.1)
-                        stuck_result = General.stuck_detect(window)
-                        if stuck_result == 1:
-                            General.toggle_auto_path_finding(window)
-                            stuck_result = General.stuck_detect(window)
-                        else:
-                            stuck_result = 0
+                while General.confirm_detect(window):
+                    time.sleep(1)
+                time.sleep(0.5)
             else:
                 curse_images = General.get_curse_image(window)
                 curses = General.parse_curse_image(curse_images, keys)
@@ -102,21 +64,31 @@ def main():
                 else:
                     print("Baidu ocr failed!", file=f)
                     sys.exit()
-            General.resource_completion_detect(window)
-            General.map_management(window)
-            elapsed_time = time.time() - temp_start_time
+            time.sleep(0.2)
+            while General.resource_completion_detect(window):
+                time.sleep(1)
+            if General.start_floor_detect(window):
+                General.map_page_detect(window)  # thread
+                General.map_management(window)
+                General.auto_route_detect(window)
+                General.map_page_detect(window)
+                elapsed_time = time.time() - temp_start_time
+                print("Curse " + str(count) + " selected!", file=f)
+                print('time elapsed: ' + str(elapsed_time) + ' seconds.', file=f)
+                time.sleep(7)
+            General.map_page_detect(window)
+            General.auto_route_detect(window)
+
             count += 1
-            print("Curse " + str(count) + " selected!", file=f)
-            print('time elapsed: ' + str(elapsed_time) + ' seconds.', file=f)
-            time.sleep(10)
+
             if current_floor == 0:
                 current_floor = General.floor_detection(window)
             else:
                 current_floor += 5
                 print('Current Floor: ' + str(current_floor) + '\n', file=f)
-        f.close()
-        General.send_email('Kaki script quit with time out')
-        print('Quit with time out')
+                f.close()
+            time.sleep(1)
+
     elif int(config['DEFAULT']['ModeSelection']) == 1:
         General.auto_legend(window, auto_legend_count)
     elif int(config['DEFAULT']['ModeSelection']) == 2:
@@ -134,13 +106,15 @@ def main():
 if __name__ == "__main__":
     main()
 
-    #
+
     # title = 'KakiRaid'
     # window = General.get_window_coordinate(title)
-
+    # General.crop_circle_image('Ref\\auto_route_on.jpg', 'Ref\\auto_route_on_circle.png')
+    #
     # print(window)
+    # General.auto_route_detect(window)
     # General.void_map_management(window)
-
+    # General.circle_mask('auto_route.jpg')
 
     # pyautogui.moveTo(x=597 - 245 + location[0] + window[0], y=223 - 123 + location[1] + window[1], duration=0.5)
     # pyautogui.moveTo(x=1322, y=606, duration=0.5)
@@ -159,12 +133,12 @@ if __name__ == "__main__":
     # if confirm_flag == 0 and toggle_flag == 1:
     #     General.toggle_auto_path_finding(window)
 
-    # upper_map_diff = [287 - 245, 854 - 123, 441 - 245, 914 - 123]
+    # upper_map_diff = [922 - 245, 187 - 123, 996 - 245, 210 - 123]
     # upper_map_img = ImageGrab.grab(bbox=(window[0] + upper_map_diff[0],
     #                                      window[1] + upper_map_diff[1],
     #                                      window[0] + upper_map_diff[2],
     #                                      window[1] + upper_map_diff[3]))
-    # upper_map_img.save('Map_Button.jpg', 'JPEG')
+    # upper_map_img.save('map_start.jpg', 'JPEG')
 
     # try:
     #     while True:
