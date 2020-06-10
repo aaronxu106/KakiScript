@@ -16,6 +16,7 @@ import configparser
 import sys
 import smtplib
 from datetime import datetime
+from email.mime.text import MIMEText
 
 # version 1.7.0, By Signal
 
@@ -235,7 +236,7 @@ def auto_route_detect(window):
     for i in range(2):
         # sum_on += abs(average_color_real_time[i] - average_color_on[i])
         sum_off += abs(average_color_real_time[i] - average_color_off[i])
-    if sum_off < 6.2:
+    if sum_off < 6.3:
         toggle_auto_path_finding(window)
 
 
@@ -1109,57 +1110,58 @@ def start_floor_detect(window):
         return False
 
 
-def send_email(message):
-    config = configparser.ConfigParser()
-    try:
-        config.read('config.ini', encoding='utf-8')
-    except:
-        config.read('config.ini', encoding='utf-8-sig')
-    gmail_user = config['Email']['email']
-
-    sent_from = "aaron.luke927@gmail.com"
-    to = [gmail_user]
-    subject = 'KakiScript Failed'
-    body = message
-
-    email_text = """From: %s\nTo: %s\nSubject: %s\n\n%s
-                 """ % (sent_from, ", ".join(to), subject, body)
-
-    try:
-        server = smtplib.SMTP_SSL('smtp.gmail.com', 465)
-        server.ehlo()
-        server.login("aaron.luke927@gmail.com", "Asdfasdf2345!!!")
-        server.sendmail(sent_from, to, email_text)
-        server.close()
-    except Exception as e:
-        pass
-
-
 # def send_email(message):
+#     config = configparser.ConfigParser()
 #     try:
-#         config = configparser.ConfigParser()
-#         try:
-#             config.read('config.ini', encoding='utf-8')
-#         except:
-#             config.read('config.ini', encoding='utf-8-sig')
-#
-#         email_user = config['Email']['email']
-#
-#         host = 'smtp.163.com'
-#         port = 465
-#         sender = 'aaron_luke927@163.com'
-#         pwd = 'WWFWTEMTFYWSMOVD'
-#         receiver = email_user
-#         body = message
-#         msg = MIMEText(body, 'html')
-#         msg['subject'] = 'KakiScript Failed!'
-#         msg['from'] = sender
-#         msg['to'] = receiver
-#         s = smtplib.SMTP_SSL(host, port)
-#         s.login(sender, pwd)
-#         s.sendmail(sender, receiver, msg.as_string())
+#         config.read('config.ini', encoding='utf-8')
 #     except:
+#         config.read('config.ini', encoding='utf-8-sig')
+#     gmail_user = config['Email']['email']
+#
+#     sent_from = "aaron.luke927@gmail.com"
+#     to = [gmail_user]
+#     subject = 'KakiScript Failed'
+#     body = message
+#
+#     email_text = """From: %s\nTo: %s\nSubject: %s\n\n%s
+#                  """ % (sent_from, ", ".join(to), subject, body)
+#
+#     try:
+#         server = smtplib.SMTP_SSL('smtp.gmail.com', 465)
+#         server.ehlo()
+#         server.login("aaron.luke927@gmail.com", "Asdfasdf2345!!!")
+#         server.sendmail(sent_from, to, email_text)
+#         server.close()
+#     except Exception as e:
 #         pass
+
+
+def send_email(message):
+    try:
+        config = configparser.ConfigParser()
+        try:
+            config.read('config.ini', encoding='utf-8')
+        except:
+            config.read('config.ini', encoding='utf-8-sig')
+
+        email_user = config['Email']['email']
+
+        host = 'smtp.163.com'
+        port = 465
+        sender = 'aaron_luke927@163.com'
+        # pwd = 'WWFWTEMTFYWSMOVD'
+        pwd = 'UKRXHVMGYOJLSUZL'
+        receiver = email_user
+        body = message
+        msg = MIMEText(body, 'html')
+        msg['subject'] = 'KakiScript Failed!'
+        msg['from'] = sender
+        msg['to'] = receiver
+        s = smtplib.SMTP_SSL(host, port)
+        s.login(sender, pwd)
+        s.sendmail(sender, receiver, msg.as_string())
+    except:
+        pass
 
 
 #
