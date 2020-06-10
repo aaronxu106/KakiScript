@@ -4,8 +4,11 @@ import pyautogui
 import configparser
 import sys
 from datetime import datetime
+import threading
 
 from PIL import Image, ImageGrab
+
+# version 1.7.0, By Signal
 
 
 def main():
@@ -46,6 +49,8 @@ def main():
         keys = [window[6]['Baidu_API']['API_ID'], window[6]['Baidu_API']['API_KEY'],
                 window[6]['Baidu_API']['SECRET_KEY']]
         # while count < max_count:
+        thread_1 = threading.Thread(target=General.click_continue, args=(window,))
+        thread_1.start()
         while True:
             print('\n', file=f)
             f.flush()
@@ -68,7 +73,7 @@ def main():
             while General.resource_completion_detect(window):
                 time.sleep(1)
             if General.start_floor_detect(window):
-                General.map_page_detect(window)  # thread
+                # General.map_page_detect(window)  # thread
                 General.map_management(window)
                 General.auto_route_detect(window)
                 General.map_page_detect(window)
@@ -76,7 +81,7 @@ def main():
                 print("Curse " + str(count) + " selected!", file=f)
                 print('time elapsed: ' + str(elapsed_time) + ' seconds.', file=f)
                 time.sleep(7)
-            General.map_page_detect(window)
+            General.map_page_detect(window, 2)
             General.auto_route_detect(window)
 
             count += 1
@@ -114,6 +119,7 @@ if __name__ == "__main__":
     # General.auto_route_detect(window)
     # General.void_map_management(window)
     # General.circle_mask('auto_route.jpg')
+    # General.click_continue(window)
 
     # pyautogui.moveTo(x=597 - 245 + location[0] + window[0], y=223 - 123 + location[1] + window[1], duration=0.5)
     # pyautogui.moveTo(x=1322, y=606, duration=0.5)
@@ -132,12 +138,19 @@ if __name__ == "__main__":
     # if confirm_flag == 0 and toggle_flag == 1:
     #     General.toggle_auto_path_finding(window)
 
-    # upper_map_diff = [922 - 245, 187 - 123, 996 - 245, 210 - 123]
+    # upper_map_diff = [1082 - 245, 426 - 123, 1148 - 245, 491 - 123]
     # upper_map_img = ImageGrab.grab(bbox=(window[0] + upper_map_diff[0],
     #                                      window[1] + upper_map_diff[1],
     #                                      window[0] + upper_map_diff[2],
     #                                      window[1] + upper_map_diff[3]))
-    # upper_map_img.save('map_start.jpg', 'JPEG')
+    # upper_map_img.save('battle_end1.jpg', 'JPEG')
+    #
+    # upper_map_diff = [1232 - 245, 851 - 123, 1401 - 245, 926 - 123]
+    # upper_map_img = ImageGrab.grab(bbox=(window[0] + upper_map_diff[0],
+    #                                      window[1] + upper_map_diff[1],
+    #                                      window[0] + upper_map_diff[2],
+    #                                      window[1] + upper_map_diff[3]))
+    # upper_map_img.save('battle_end2.jpg', 'JPEG')
 
     # try:
     #     while True:

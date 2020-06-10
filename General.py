@@ -16,9 +16,8 @@ import configparser
 import sys
 import smtplib
 from datetime import datetime
-# from skimage import io
 
-# version 1.6.0, By Signal
+# version 1.7.0, By Signal
 
 
 class MapTile:
@@ -236,7 +235,7 @@ def auto_route_detect(window):
     for i in range(2):
         # sum_on += abs(average_color_real_time[i] - average_color_on[i])
         sum_off += abs(average_color_real_time[i] - average_color_off[i])
-    if sum_off < 5:
+    if sum_off < 6.2:
         toggle_auto_path_finding(window)
 
 
@@ -838,12 +837,48 @@ def auto_legend(window, counter):
         count += 1
 
 
-def map_page_detect(window):
+def click_continue(window):
+    while True:
+        battle_end1_diff = [1082 - 245, 426 - 123, 1148 - 245, 491 - 123]
+        battle_end1_img = ImageGrab.grab(bbox=(window[0] + battle_end1_diff[0],
+                                               window[1] + battle_end1_diff[1],
+                                               window[0] + battle_end1_diff[2],
+                                               window[1] + battle_end1_diff[3]))
+        battle_end1_img.save('battle_end1.jpg', 'JPEG')
+
+        battle_end2_diff = [1232 - 245, 851 - 123, 1401 - 245, 926 - 123]
+        battle_end2_img = ImageGrab.grab(bbox=(window[0] + battle_end2_diff[0],
+                                               window[1] + battle_end2_diff[1],
+                                               window[0] + battle_end2_diff[2],
+                                               window[1] + battle_end2_diff[3]))
+        battle_end2_img.save('battle_end2.jpg', 'JPEG')
+        time.sleep(0.1)
+        im_hash_1 = imagehash.average_hash(Image.open('battle_end1.jpg'))
+        im_hash_2 = imagehash.average_hash(Image.open('battle_end2.jpg'))
+        im_hash_ref_1 = imagehash.average_hash(Image.open('Ref\\battle_end1.jpg'))
+        im_hash_ref_2 = imagehash.average_hash(Image.open('Ref\\battle_end2.jpg'))
+        # im_hash_ref_3 = imagehash.average_hash(Image.open('Ref\\battle_end3.jpg'))
+        # im_hash_ref_4 = imagehash.average_hash(Image.open('Ref\\battle_end4.jpg'))
+        im_hash_ref_5 = imagehash.average_hash(Image.open('Ref\\battle_end5.jpg'))
+
+        if abs(im_hash_1 - im_hash_ref_1) < 3:
+            if abs(im_hash_2 - im_hash_ref_2) < 3:
+                pyautogui.click(x=1316 - 245 + window[0], y=888 - 123 + window[1])
+            # elif abs(im_hash_2 - im_hash_ref_3) < 3:
+            #     pyautogui.click(x=1316 - 245 + window[0], y=888 - 123 + window[1])
+            # elif abs(im_hash_2 - im_hash_ref_4) < 3:
+            #     pyautogui.click(x=1316 - 245 + window[0], y=888 - 123 + window[1])
+            elif abs(im_hash_2 - im_hash_ref_5) < 3:
+                pyautogui.click(x=1316 - 245 + window[0], y=888 - 123 + window[1])
+        time.sleep(0.8)
+
+
+def map_page_detect(window, mode=1):
     map_button_diff = [287 - 245, 854 - 123, 441 - 245, 914 - 123]
     map_button_img = ImageGrab.grab(bbox=(window[0] + map_button_diff[0],
-                                         window[1] + map_button_diff[1],
-                                         window[0] + map_button_diff[2],
-                                         window[1] + map_button_diff[3]))
+                                          window[1] + map_button_diff[1],
+                                          window[0] + map_button_diff[2],
+                                          window[1] + map_button_diff[3]))
     map_button_img.save('map_button.jpg', 'JPEG')
     time.sleep(0.2)
     im_hash = imagehash.average_hash(Image.open('map_button.jpg'))
@@ -851,9 +886,23 @@ def map_page_detect(window):
     im_hash_close_ref = imagehash.average_hash(Image.open('Ref//map_button_close.jpg'))
     if abs(im_hash_ref - im_hash) < 3:
         return True
-    elif abs(im_hash_close_ref - im_hash) < 3:
+    elif mode == 1 and abs(im_hash_close_ref - im_hash) < 3:  # map management check
         pyautogui.moveTo(window[0] + 367 - 246, window[1] + 889 - 123, duration=0.3)
         pyautogui.click()
+        return False
+    elif mode == 2 and abs(im_hash_close_ref - im_hash) < 3:  # general check
+        time.sleep(2.5)
+        map_button_diff = [287 - 245, 854 - 123, 441 - 245, 914 - 123]
+        map_button_img = ImageGrab.grab(bbox=(window[0] + map_button_diff[0],
+                                              window[1] + map_button_diff[1],
+                                              window[0] + map_button_diff[2],
+                                              window[1] + map_button_diff[3]))
+        map_button_img.save('map_button.jpg', 'JPEG')
+        time.sleep(0.2)
+        im_hash = imagehash.average_hash(Image.open('map_button.jpg'))
+        if abs(im_hash_close_ref - im_hash) < 3:
+            pyautogui.moveTo(window[0] + 367 - 246, window[1] + 889 - 123, duration=0.3)
+            pyautogui.click()
         return False
     else:
         return False
