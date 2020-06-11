@@ -8,6 +8,8 @@ import threading
 
 from PIL import Image, ImageGrab
 
+# import imagehash
+
 # version 1.7.0, By Signal
 
 
@@ -26,9 +28,12 @@ def main():
     title = 'KakiRaid'
     if int(config['DEFAULT']['AdjustWindow']) == 1:
         General.adjust_window(title, [0, 0])
+        time.sleep(0.2)
     elif int(config['DEFAULT']['AdjustWindow']) == 2:
         General.adjust_window(title, [245, 123])
+        time.sleep(0.2)
     window = General.get_window_coordinate(title)  # x, y, w, h
+    time.sleep(0.2)
     window.append(start_time)  # index 4
 
     auto_legend_count = int(config['DEFAULT']['AutoLegendCount'])
@@ -96,6 +101,8 @@ def main():
     elif int(config['DEFAULT']['ModeSelection']) == 1:
         General.auto_legend(window, auto_legend_count)
     elif int(config['DEFAULT']['ModeSelection']) == 2:
+        thread_1 = threading.Thread(target=General.click_continue, args=(window,))
+        thread_1.start()
         grind_count = int(config['Void_Island']['Count'])
         if grind_count == 0:
             grind_count = 9999
@@ -110,13 +117,15 @@ def main():
 if __name__ == "__main__":
     main()
 
-
     # title = 'KakiRaid'
     # window = General.get_window_coordinate(title)
+
     # General.crop_circle_image('Ref\\auto_route_on.jpg', 'Ref\\auto_route_on_circle.png')
-    #
+    # city_page = General.city_page_detect(window)
+    # print(city_page)
     # print(window)
     # General.auto_route_detect(window)
+    # pyautogui.press('space', presses=3, interval=3)
     # General.void_map_management(window)
     # General.circle_mask('auto_route.jpg')
     # General.click_continue(window)
@@ -138,12 +147,12 @@ if __name__ == "__main__":
     # if confirm_flag == 0 and toggle_flag == 1:
     #     General.toggle_auto_path_finding(window)
 
-    # upper_map_diff = [1082 - 245, 426 - 123, 1148 - 245, 491 - 123]
+    # upper_map_diff = [1594 - 245, 177 - 123, 1630 - 245, 215 - 123]
     # upper_map_img = ImageGrab.grab(bbox=(window[0] + upper_map_diff[0],
     #                                      window[1] + upper_map_diff[1],
     #                                      window[0] + upper_map_diff[2],
     #                                      window[1] + upper_map_diff[3]))
-    # upper_map_img.save('battle_end1.jpg', 'JPEG')
+    # upper_map_img.save('in_battle.jpg', 'JPEG')
     #
     # upper_map_diff = [1232 - 245, 851 - 123, 1401 - 245, 926 - 123]
     # upper_map_img = ImageGrab.grab(bbox=(window[0] + upper_map_diff[0],
@@ -151,6 +160,10 @@ if __name__ == "__main__":
     #                                      window[0] + upper_map_diff[2],
     #                                      window[1] + upper_map_diff[3]))
     # upper_map_img.save('battle_end2.jpg', 'JPEG')
+    #
+    # im_hash_void_complete = imagehash.average_hash(Image.open('void_complete.jpg'))
+    # im_hash_void_complete_ref = imagehash.average_hash(Image.open('Ref\\void_complete_ref.jpg'))
+    # print(abs(im_hash_void_complete - im_hash_void_complete_ref))
 
     # try:
     #     while True:

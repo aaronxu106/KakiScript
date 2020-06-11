@@ -18,7 +18,7 @@ import smtplib
 from datetime import datetime
 from email.mime.text import MIMEText
 
-# version 1.7.0, By Signal
+# version 1.7.1, By Signal
 
 
 class MapTile:
@@ -218,26 +218,33 @@ def auto_route_detect(window):
                                           window[0] + auto_route_diff[2],
                                           window[1] + auto_route_diff[3]))
     auto_route_img.save('auto_route.jpg', 'JPEG')
-    time.sleep(0.2)
+    time.sleep(0.01)
 
-    # ref_on = cv2.imread("Ref//auto_route_on.png")
-    # ref_off = cv2.imread("Ref//auto_route_off.png")
-    # real_time = cv2.imread('auto_route.png')
-    # ref_on = circle_mask("Ref//auto_route_off.jpg")
+    in_battle_diff = [1594 - 245, 177 - 123, 1630 - 245, 215 - 123]
+    in_battle_img = ImageGrab.grab(bbox=(window[0] + in_battle_diff[0],
+                                         window[1] + in_battle_diff[1],
+                                         window[0] + in_battle_diff[2],
+                                         window[1] + in_battle_diff[3]))
+    in_battle_img.save('in_battle.jpg', 'JPEG')
+
     ref_off = circle_mask("Ref//auto_route_off.jpg")
     real_time = circle_mask("auto_route.jpg")
-    # average_color_on = np.average(np.average(ref_on, axis=0), axis=0)
     average_color_off = np.average(np.average(ref_off, axis=0), axis=0)
-    # average_color_on = [90.54405776, 130.7070659015, 159.11014439]
-    # average_color_off = [82.04887079, 109.5601629, 131.79988893]
     average_color_real_time = np.average(np.average(real_time, axis=0), axis=0)
-    # sum_on = 0
-    sum_off = 0
+
+    im_hash = imagehash.average_hash(Image.open('in_battle.jpg'))
+    im_ref_hash = imagehash.average_hash(Image.open('Ref\\in_battle_ref.jpg'))
+
+    sum_off = 1
     for i in range(2):
         # sum_on += abs(average_color_real_time[i] - average_color_on[i])
-        sum_off += abs(average_color_real_time[i] - average_color_off[i])
-    if sum_off < 6.3:
-        toggle_auto_path_finding(window)
+        if abs(average_color_real_time[i] - average_color_off[i]) > 4:
+            sum_off = 0
+    if sum_off == 1 and abs(im_ref_hash - im_hash) > 2:
+        # print('auto_path on')
+        return False
+    else:
+        return True
 
 
 def parse_curse_image(curses, keys, count=2):
@@ -317,7 +324,6 @@ def curse_page_detect(window, count=0):
         print('Fail to detect curse page, quitting program..', file=f)
         f.flush()
         return False
-
 
 
 def baidu_ocr(pic_file, keys):
@@ -421,6 +427,22 @@ def select_curse(window, words_results, fail_count=0):  # select curse coordinat
         #     else:
         #         time.sleep(90)
         #         select_curse(window, curses, fail_count)
+
+
+def city_page_detect(window):
+    city_page_diff = [1571 - 245, 910 - 123, 1656 - 245, 933 - 123]
+    city_page_img = ImageGrab.grab(bbox=(window[0] + city_page_diff[0],
+                                         window[1] + city_page_diff[1],
+                                         window[0] + city_page_diff[2],
+                                         window[1] + city_page_diff[3]))
+    city_page_img.save('city_page.jpg', 'JPEG')
+    time.sleep(0.1)
+    im_hash = imagehash.average_hash(Image.open('city_page.jpg'))
+    im_ref_hash = imagehash.average_hash(Image.open('Ref\\city_page_ref.jpg'))
+    if abs(im_hash - im_ref_hash) < 3:
+        return True
+    else:
+        return False
 
 
 def stuck_detect(window):
@@ -852,6 +874,7 @@ def click_continue(window):
                                                window[1] + battle_end2_diff[1],
                                                window[0] + battle_end2_diff[2],
                                                window[1] + battle_end2_diff[3]))
+        time.sleep(0.1)
         battle_end2_img.save('battle_end2.jpg', 'JPEG')
         time.sleep(0.1)
         im_hash_1 = imagehash.average_hash(Image.open('battle_end1.jpg'))
@@ -862,14 +885,14 @@ def click_continue(window):
         # im_hash_ref_4 = imagehash.average_hash(Image.open('Ref\\battle_end4.jpg'))
         im_hash_ref_5 = imagehash.average_hash(Image.open('Ref\\battle_end5.jpg'))
 
-        if abs(im_hash_1 - im_hash_ref_1) < 3:
-            if abs(im_hash_2 - im_hash_ref_2) < 3:
+        if abs(im_hash_1 - im_hash_ref_1) < 2:
+            if abs(im_hash_2 - im_hash_ref_2) < 2:
                 pyautogui.click(x=1316 - 245 + window[0], y=888 - 123 + window[1])
             # elif abs(im_hash_2 - im_hash_ref_3) < 3:
             #     pyautogui.click(x=1316 - 245 + window[0], y=888 - 123 + window[1])
             # elif abs(im_hash_2 - im_hash_ref_4) < 3:
             #     pyautogui.click(x=1316 - 245 + window[0], y=888 - 123 + window[1])
-            elif abs(im_hash_2 - im_hash_ref_5) < 3:
+            elif abs(im_hash_2 - im_hash_ref_5) < 2:
                 pyautogui.click(x=1316 - 245 + window[0], y=888 - 123 + window[1])
         time.sleep(0.8)
 
@@ -904,6 +927,7 @@ def map_page_detect(window, mode=1):
         if abs(im_hash_close_ref - im_hash) < 3:
             pyautogui.moveTo(window[0] + 367 - 246, window[1] + 889 - 123, duration=0.3)
             pyautogui.click()
+            print('map closed, outside map management')
         return False
     else:
         return False
@@ -922,120 +946,196 @@ def void_island_grind(window):
     melee_kaki_index = config['Void_Island']['Melee_Index'].split(',')
     range_kaki_index = config['Void_Island']['Range_Index'].split(',')
 
-    adv_start_diff = [1619 - 245, 887 - 123]
-    pyautogui.click(adv_start_diff[0] + window[0], adv_start_diff[1] + window[1], duration=0.25)
+    if city_page_detect(window):
+        adv_start_diff = [1619 - 245, 887 - 123]
+        pyautogui.click(adv_start_diff[0] + window[0], adv_start_diff[1] + window[1], duration=0.25)
 
-    # check if inventory full
-    full_inventory_img_diff = [727 - 245, 351 - 123, 1190 - 245, 397 - 123]
-    full_inventory_img = ImageGrab.grab(bbox=(window[0] + full_inventory_img_diff[0],
-                                              window[1] + full_inventory_img_diff[1],
-                                              window[0] + full_inventory_img_diff[2],
-                                              window[1] + full_inventory_img_diff[3]))
-    full_inventory_img.save('inventory_check.jpg', 'JPEG')
-    time.sleep(0.1)
-    im_hash = imagehash.average_hash(Image.open('inventory_check.jpg'))
-    im_hash_ref = imagehash.average_hash(Image.open('Ref\\inventory_check_ref.jpg'))
-    if abs(im_hash - im_hash_ref) > 4:
-        void_island_diff = [328 - 245, 560 - 123]
-        pyautogui.click(void_island_diff[0] + window[0], void_island_diff[1] + window[1], duration=1)
-        level_inc_diff = [1149 - 245, 716 - 123]
-        time.sleep(1)
-        if level > 1:
-            pyautogui.click(level_inc_diff[0] + window[0], level_inc_diff[1] + window[1], clicks=level,
-                            interval=0.5)
-        time.sleep(0.5)
-        grind_start_diff = [1103 - 245, 831 - 123]
-        pyautogui.click(grind_start_diff[0] + window[0], grind_start_diff[1] + window[1], duration=1)
-        team_select_diff = [859 - 245, 748 - 123]
-        pyautogui.click(team_select_diff[0] + window[0], team_select_diff[1] + window[1], duration=1)
+        # check if inventory full
+        full_inventory_img_diff = [727 - 245, 351 - 123, 1190 - 245, 397 - 123]
+        full_inventory_img = ImageGrab.grab(bbox=(window[0] + full_inventory_img_diff[0],
+                                                  window[1] + full_inventory_img_diff[1],
+                                                  window[0] + full_inventory_img_diff[2],
+                                                  window[1] + full_inventory_img_diff[3]))
+        full_inventory_img.save('inventory_check.jpg', 'JPEG')
+        time.sleep(0.1)
+        im_hash = imagehash.average_hash(Image.open('inventory_check.jpg'))
+        im_hash_ref = imagehash.average_hash(Image.open('Ref\\inventory_check_ref.jpg'))
+        if abs(im_hash - im_hash_ref) > 4:
+            void_island_diff = [328 - 245, 560 - 123]
+            pyautogui.click(void_island_diff[0] + window[0], void_island_diff[1] + window[1], duration=1)
+            level_inc_diff = [1149 - 245, 716 - 123]
+            time.sleep(1)
+            if level > 1:
+                pyautogui.click(level_inc_diff[0] + window[0], level_inc_diff[1] + window[1], clicks=level,
+                                interval=0.5)
+            time.sleep(0.5)
+            grind_start_diff = [1103 - 245, 831 - 123]
+            pyautogui.click(grind_start_diff[0] + window[0], grind_start_diff[1] + window[1], duration=1)
+            team_select_diff = [859 - 245, 748 - 123]
+            pyautogui.click(team_select_diff[0] + window[0], team_select_diff[1] + window[1], duration=1)
 
-        melee_group_diff = [596 - 245, 624 - 123]
-        first_kaki_diff = [365 - 245, 766 - 123]
-        pyautogui.click(melee_group_diff[0] + window[0], melee_group_diff[1] + window[1], duration=1)
-        time.sleep(0.5)
-        move_counter = 0
-        for i in range(len(melee_kaki_index)):  # max 13 kaki, in case of new kaki, need to modify the if statement
-            if (int(melee_kaki_index[i]) - 6 * move_counter) > 7:
-                pyautogui.moveTo(first_kaki_diff[0] + 150 * 6 + window[0], first_kaki_diff[1] + window[1])
-                pyautogui.mouseDown()
-                time.sleep(0.5)
-                pyautogui.dragRel(xOffset=-150 * 6, yOffset=0, duration=3, mouseDownUp=False)
-                time.sleep(0.5)
-                pyautogui.mouseUp()
-                move_counter += 1
-                pyautogui.click(first_kaki_diff[0] +
-                                150 * (int(melee_kaki_index[i]) - 6 * move_counter - 1) + window[0],
-                                first_kaki_diff[1] + window[1], duration=0.8)
-            elif (int(melee_kaki_index[i]) - 6 * move_counter) <= 7:
-                pyautogui.click(first_kaki_diff[0] +
-                                150 * (int(melee_kaki_index[i]) - 6 * move_counter - 1) + window[0],
-                                first_kaki_diff[1] + window[1], duration=0.8)
+            melee_group_diff = [596 - 245, 624 - 123]
+            first_kaki_diff = [365 - 245, 766 - 123]
+            pyautogui.click(melee_group_diff[0] + window[0], melee_group_diff[1] + window[1], duration=1)
+            time.sleep(0.5)
+            move_counter = 0
+            for i in range(len(melee_kaki_index)):  # max 13 kaki, in case of new kaki, need to modify the if statement
+                if (int(melee_kaki_index[i]) - 6 * move_counter) > 7:
+                    pyautogui.moveTo(first_kaki_diff[0] + 150 * 6 + window[0], first_kaki_diff[1] + window[1])
+                    pyautogui.mouseDown()
+                    time.sleep(0.5)
+                    pyautogui.dragRel(xOffset=-150 * 6, yOffset=0, duration=3, mouseDownUp=False)
+                    time.sleep(0.5)
+                    pyautogui.mouseUp()
+                    move_counter += 1
+                    pyautogui.click(first_kaki_diff[0] +
+                                    150 * (int(melee_kaki_index[i]) - 6 * move_counter - 1) + window[0],
+                                    first_kaki_diff[1] + window[1], duration=0.8)
+                elif (int(melee_kaki_index[i]) - 6 * move_counter) <= 7:
+                    pyautogui.click(first_kaki_diff[0] +
+                                    150 * (int(melee_kaki_index[i]) - 6 * move_counter - 1) + window[0],
+                                    first_kaki_diff[1] + window[1], duration=0.8)
 
-        range_group_diff = [797 - 245, 622 - 123]
-        pyautogui.click(range_group_diff[0] + window[0], range_group_diff[1] + window[1], duration=0.8)
-        for i in range(len(range_kaki_index)):  # max 17 kaki, in case of new kaki, need to modify if statement
-            if (int(range_kaki_index[i]) - 6 * move_counter) > 13:
-                pyautogui.moveTo(first_kaki_diff[0] + 150 * 6 + window[0], first_kaki_diff[1] + window[1])
-                pyautogui.mouseDown()
-                time.sleep(0.5)
-                pyautogui.dragRel(xOffset=-150 * 6, yOffset=0, duration=3, mouseDownUp=False)
-                time.sleep(0.5)
-                pyautogui.mouseUp()
-                pyautogui.moveTo(first_kaki_diff[0] + 150 * 6 + window[0], first_kaki_diff[1] + window[1])
-                pyautogui.mouseDown()
-                time.sleep(0.5)
-                pyautogui.dragRel(xOffset=-150 * 6, yOffset=0, duration=3, mouseDownUp=False)
-                time.sleep(0.5)
-                pyautogui.mouseUp()
-                move_counter += 2
-                pyautogui.click(first_kaki_diff[0] +
-                                150 * (int(range_kaki_index[i]) - 6 * move_counter) + window[0] - 3,
-                                first_kaki_diff[1] + window[1], duration=0.8)
-            elif (int(range_kaki_index[i]) - 6 * move_counter) > 7:
-                pyautogui.moveTo(first_kaki_diff[0] + 150 * 6 + window[0], first_kaki_diff[1] + window[1])
-                pyautogui.mouseDown()
-                time.sleep(0.5)
-                pyautogui.dragRel(xOffset=-150 * 6, yOffset=0, duration=3, mouseDownUp=False)
-                time.sleep(0.5)
-                pyautogui.mouseUp()
-                move_counter += 1
-                pyautogui.click(first_kaki_diff[0] +
-                                150 * (int(range_kaki_index[i]) - 6 * move_counter - 1) + window[0],
-                                first_kaki_diff[1] + window[1], duration=0.8)
-            elif 0 < (int(range_kaki_index[i]) - 6 * move_counter) <= 7:
-                pyautogui.click(first_kaki_diff[0] +
-                                150 * (int(range_kaki_index[i]) - 6 * move_counter - 1) + window[0],
-                                first_kaki_diff[1] + window[1], duration=0.8)
-            elif (int(range_kaki_index[i]) - 6 * move_counter) <= 0:
-                pyautogui.moveTo(first_kaki_diff[0] + window[0], first_kaki_diff[1] + window[1])
-                pyautogui.mouseDown()
-                time.sleep(0.5)
-                pyautogui.dragRel(xOffset=150 * 6, yOffset=0, duration=3, mouseDownUp=False)
-                time.sleep(0.5)
-                pyautogui.mouseUp()
-                move_counter -= 1
-                pyautogui.click(first_kaki_diff[0] +
-                                150 * (int(range_kaki_index[i]) - 6 * move_counter - 1) + window[0],
-                                first_kaki_diff[1] + window[1], duration=0.8)
-        confirm_team_diff = [1493 - 245, 872 - 123]
-        pyautogui.click(window[0] + confirm_team_diff[0], window[1] + confirm_team_diff[1], duration=0.5)
-        go_button_diff = [1460 - 245, 839 - 123]
-        pyautogui.click(window[0] + go_button_diff[0], window[1] + go_button_diff[1], duration=0.5)
-        time.sleep(6)
-        toggle_auto_path_finding(window)
-        time.sleep(4.5)
-        select_blessing_diff = [1047 - 245, 740 - 123]
-        pyautogui.click(window[0] + select_blessing_diff[0], window[1] + select_blessing_diff[1], duration=0.5)
+            range_group_diff = [797 - 245, 622 - 123]
+            pyautogui.click(range_group_diff[0] + window[0], range_group_diff[1] + window[1], duration=0.8)
+            for i in range(len(range_kaki_index)):  # max 17 kaki, in case of new kaki, need to modify if statement
+                if (int(range_kaki_index[i]) - 6 * move_counter) > 13:
+                    pyautogui.moveTo(first_kaki_diff[0] + 150 * 6 + window[0], first_kaki_diff[1] + window[1])
+                    pyautogui.mouseDown()
+                    time.sleep(0.5)
+                    pyautogui.dragRel(xOffset=-150 * 6, yOffset=0, duration=3, mouseDownUp=False)
+                    time.sleep(0.5)
+                    pyautogui.mouseUp()
+                    pyautogui.moveTo(first_kaki_diff[0] + 150 * 6 + window[0], first_kaki_diff[1] + window[1])
+                    pyautogui.mouseDown()
+                    time.sleep(0.5)
+                    pyautogui.dragRel(xOffset=-150 * 6, yOffset=0, duration=3, mouseDownUp=False)
+                    time.sleep(0.5)
+                    pyautogui.mouseUp()
+                    move_counter += 2
+                    pyautogui.click(first_kaki_diff[0] +
+                                    150 * (int(range_kaki_index[i]) - 6 * move_counter) + window[0] - 3,
+                                    first_kaki_diff[1] + window[1], duration=0.8)
+                elif (int(range_kaki_index[i]) - 6 * move_counter) > 7:
+                    pyautogui.moveTo(first_kaki_diff[0] + 150 * 6 + window[0], first_kaki_diff[1] + window[1])
+                    pyautogui.mouseDown()
+                    time.sleep(0.5)
+                    pyautogui.dragRel(xOffset=-150 * 6, yOffset=0, duration=3, mouseDownUp=False)
+                    time.sleep(0.5)
+                    pyautogui.mouseUp()
+                    move_counter += 1
+                    pyautogui.click(first_kaki_diff[0] +
+                                    150 * (int(range_kaki_index[i]) - 6 * move_counter - 1) + window[0],
+                                    first_kaki_diff[1] + window[1], duration=0.8)
+                elif 0 < (int(range_kaki_index[i]) - 6 * move_counter) <= 7:
+                    pyautogui.click(first_kaki_diff[0] +
+                                    150 * (int(range_kaki_index[i]) - 6 * move_counter - 1) + window[0],
+                                    first_kaki_diff[1] + window[1], duration=0.8)
+                elif (int(range_kaki_index[i]) - 6 * move_counter) <= 0:
+                    pyautogui.moveTo(first_kaki_diff[0] + window[0], first_kaki_diff[1] + window[1])
+                    pyautogui.mouseDown()
+                    time.sleep(0.5)
+                    pyautogui.dragRel(xOffset=150 * 6, yOffset=0, duration=3, mouseDownUp=False)
+                    time.sleep(0.5)
+                    pyautogui.mouseUp()
+                    move_counter -= 1
+                    pyautogui.click(first_kaki_diff[0] +
+                                    150 * (int(range_kaki_index[i]) - 6 * move_counter - 1) + window[0],
+                                    first_kaki_diff[1] + window[1], duration=0.8)
+            confirm_team_diff = [1493 - 245, 872 - 123]
+            pyautogui.click(window[0] + confirm_team_diff[0], window[1] + confirm_team_diff[1], duration=0.5)
+            go_button_diff = [1460 - 245, 839 - 123]
+            pyautogui.click(window[0] + go_button_diff[0], window[1] + go_button_diff[1], duration=0.5)
+            time.sleep(6)
+            toggle_auto_path_finding(window)
+            time.sleep(4.5)
+            select_blessing_diff = [1047 - 245, 740 - 123]
+            pyautogui.click(window[0] + select_blessing_diff[0], window[1] + select_blessing_diff[1], duration=0.5)
+            time.sleep(5)
+            while True:
+                time.sleep(2)
+                # print('loop started')  # Remove
+                while confirm_detect(window):
+                    # print('network turbulence, confirm button detected')  # Remove
+                    time.sleep(1)
+                while resource_completion_detect(window):
+                    # print('resource task completed')  # Remove
+                    time.sleep(1)
+                if start_floor_detect(window):
+                    # print('start floor detected')  # Remove
+                    void_map_management(window)
+                    # print('map management completed')  # Remove
+                    if not auto_route_detect(window):
+                        toggle_auto_path_finding(window)
+                    # print('map management auto_route enabled')  # Remove
+                    map_page_detect(window)
+                    # print('map page closed')  # Remove
+                    time.sleep(20)
+                if not auto_route_detect(window):
+                    time.sleep(1)
+                    if not auto_route_detect(window):
+                        toggle_auto_path_finding(window)
+                map_page_detect(window, 2)
+                void_complete_img_diff = [759 - 245, 842 - 123, 1160 - 245, 900 - 123]
+                void_complete_img = ImageGrab.grab(bbox=(window[0] + void_complete_img_diff[0],
+                                                         window[1] + void_complete_img_diff[1],
+                                                         window[0] + void_complete_img_diff[2],
+                                                         window[1] + void_complete_img_diff[3]))
+                void_complete_img.save('void_complete.jpg', 'JPEG')
+                time.sleep(0.2)
+                im_hash_void_complete = imagehash.average_hash(Image.open('void_complete.jpg'))
+                im_hash_void_complete_ref = imagehash.average_hash(Image.open('Ref\\void_complete_ref.jpg'))
+                if abs(im_hash_void_complete - im_hash_void_complete_ref) < 3:
+                    # print('void island completed')  # Remove
+                    time.sleep(1.5)
+                    success_continue_diff = [957 - 245, 874 - 123]
+                    pyautogui.click(window[0] + success_continue_diff[0], window[1] + success_continue_diff[1],
+                                    duration=0.5)
+                    time.sleep(1.5)  # miracle_stone experience completion
+                    pyautogui.click(window[0] + success_continue_diff[0], window[1] + success_continue_diff[1],
+                                    duration=0.5)
+                    time.sleep(1.5)  # confirm hero/god experience count down
+                    pyautogui.click(window[0] + success_continue_diff[0], window[1] + success_continue_diff[1],
+                                    duration=0.5)
+                    time.sleep(1.5)  # confirm hero/god experience continue
+                    pyautogui.click(window[0] + success_continue_diff[0], window[1] + success_continue_diff[1],
+                                    duration=0.5)
+                    time.sleep(1.5)  # ???
+                    pyautogui.click(window[0] + success_continue_diff[0], window[1] + success_continue_diff[1],
+                                    duration=0.5)
+                    now = datetime.now()
+                    print(now, file=f)
+                    f.flush()
+                    time.sleep(10)
+                    break
+        else:
+            send_email('Inventory Full!')
+            sys.exit()
+    else:
         while True:
             time.sleep(2)
+            # print('loop started')  # Remove
             while confirm_detect(window):
+                # print('network turbulence, confirm button detected')  # Remove
                 time.sleep(1)
-            while not map_page_detect(window):
-                resource_completion_detect(window)
+            while resource_completion_detect(window):
+                # print('resource task completed')  # Remove
+                time.sleep(1)
             if start_floor_detect(window):
+                # print('start floor detected')  # Remove
                 void_map_management(window)
-                auto_route_detect(window)
+                # print('map management completed')  # Remove
+                if not auto_route_detect(window):
+                    toggle_auto_path_finding(window)
+                # print('map management auto_route enabled')  # Remove
                 map_page_detect(window)
+                # print('map page closed')  # Remove
+                time.sleep(20)
+            if not auto_route_detect(window):
+                time.sleep(1)
+                if not auto_route_detect(window):
+                    toggle_auto_path_finding(window)
+            map_page_detect(window, 2)
             void_complete_img_diff = [759 - 245, 842 - 123, 1160 - 245, 900 - 123]
             void_complete_img = ImageGrab.grab(bbox=(window[0] + void_complete_img_diff[0],
                                                      window[1] + void_complete_img_diff[1],
@@ -1046,6 +1146,7 @@ def void_island_grind(window):
             im_hash_void_complete = imagehash.average_hash(Image.open('void_complete.jpg'))
             im_hash_void_complete_ref = imagehash.average_hash(Image.open('Ref\\void_complete_ref.jpg'))
             if abs(im_hash_void_complete - im_hash_void_complete_ref) < 3:
+                # print('void island completed')  # Remove
                 time.sleep(1.5)
                 success_continue_diff = [957 - 245, 874 - 123]
                 pyautogui.click(window[0] + success_continue_diff[0], window[1] + success_continue_diff[1],
@@ -1067,9 +1168,6 @@ def void_island_grind(window):
                 f.flush()
                 time.sleep(10)
                 break
-    else:
-        send_email('Inventory Full!')
-        sys.exit()
     pass
 
 
@@ -1087,7 +1185,7 @@ def resource_completion_detect(window, count=0):
     im1_hash_ref = imagehash.average_hash(Image.open('Ref\\first_track_img_ref.jpg'))
     im2_hash = imagehash.average_hash(Image.open('second_track_img.jpg'))
     im2_hash_ref = imagehash.average_hash(Image.open('Ref\\second_track_img_ref.jpg'))
-    if abs(im1_hash - im1_hash_ref) <= 5 or abs(im2_hash - im2_hash_ref) <= 5:
+    if abs(im1_hash - im1_hash_ref) <= 8 or abs(im2_hash - im2_hash_ref) <= 8:
         pyautogui.click(window[0] + window[2] // 2, window[1] + window[3] // 8 * 7, duration=0.3)
         return True
     else:
