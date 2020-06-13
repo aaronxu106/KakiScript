@@ -239,12 +239,12 @@ def auto_route_detect(window):
     for i in range(3):
         # sum_on += abs(average_color_real_time[i] - average_color_on[i])
         if abs(average_color_real_time[i] - average_color_off[i]) > 6:  # auto_route on
-            print('Auto_route check: ' + str(i) + 'th')
-            print(abs(average_color_real_time[i] - average_color_off[i]))
+            # print('Auto_route check: ' + str(i) + 'th')
+            # print(abs(average_color_real_time[i] - average_color_off[i]))
             sum_off = 0
     if sum_off == 1 and abs(im_ref_hash - im_hash) > 2:  # not in combat
-        print('combat diff (in combat less than 2)')
-        print(abs(im_ref_hash - im_hash))
+        # print('combat diff (in combat less than 2)')
+        # print(abs(im_ref_hash - im_hash))
         # print('auto_path on')
         return False
     else:
