@@ -10,7 +10,7 @@ from PIL import Image, ImageGrab
 
 # import imagehash
 
-# version 1.7.0, By Signal
+# version 1.8.1, By Signal
 
 
 def main():
@@ -75,19 +75,23 @@ def main():
                     print("Baidu ocr failed!", file=f)
                     sys.exit()
             time.sleep(0.2)
-            while General.resource_completion_detect(window):
-                time.sleep(1)
+
             if General.start_floor_detect(window):
                 # General.map_page_detect(window)  # thread
+                while General.resource_completion_detect(window):
+                    time.sleep(1)
                 General.map_management(window)
-                General.auto_route_detect(window)
+                General.toggle_auto_path_finding(window)
                 General.map_page_detect(window)
                 elapsed_time = time.time() - temp_start_time
                 print("Curse " + str(count) + " selected!", file=f)
                 print('time elapsed: ' + str(elapsed_time) + ' seconds.', file=f)
                 time.sleep(7)
             General.map_page_detect(window, 2)
-            General.auto_route_detect(window)
+            if not General.auto_route_detect(window):
+                time.sleep(1.5)
+                if not General.auto_route_detect(window):
+                    General.toggle_auto_path_finding(window)
 
             count += 1
 

@@ -18,7 +18,7 @@ import smtplib
 from datetime import datetime
 from email.mime.text import MIMEText
 
-# version 1.7.1, By Signal
+# version 1.8.1, By Signal
 
 
 class MapTile:
@@ -236,11 +236,15 @@ def auto_route_detect(window):
     im_ref_hash = imagehash.average_hash(Image.open('Ref\\in_battle_ref.jpg'))
 
     sum_off = 1
-    for i in range(2):
+    for i in range(3):
         # sum_on += abs(average_color_real_time[i] - average_color_on[i])
-        if abs(average_color_real_time[i] - average_color_off[i]) > 4:
+        if abs(average_color_real_time[i] - average_color_off[i]) > 6:  # auto_route on
+            print('Auto_route check: ' + str(i) + 'th')
+            print(abs(average_color_real_time[i] - average_color_off[i]))
             sum_off = 0
-    if sum_off == 1 and abs(im_ref_hash - im_hash) > 2:
+    if sum_off == 1 and abs(im_ref_hash - im_hash) > 2:  # not in combat
+        print('combat diff (in combat less than 2)')
+        print(abs(im_ref_hash - im_hash))
         # print('auto_path on')
         return False
     else:
@@ -1058,11 +1062,11 @@ def void_island_grind(window):
                 while confirm_detect(window):
                     # print('network turbulence, confirm button detected')  # Remove
                     time.sleep(1)
-                while resource_completion_detect(window):
-                    # print('resource task completed')  # Remove
-                    time.sleep(1)
                 if start_floor_detect(window):
                     # print('start floor detected')  # Remove
+                    while resource_completion_detect(window):
+                        # print('resource task completed')  # Remove
+                        time.sleep(1)
                     void_map_management(window)
                     # print('map management completed')  # Remove
                     if not auto_route_detect(window):
