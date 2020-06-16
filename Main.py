@@ -10,7 +10,7 @@ from PIL import Image, ImageGrab
 
 # import imagehash
 
-# version 1.8.1, By Signal
+# version 1.8.2, By Signal
 
 
 def main():
@@ -71,6 +71,10 @@ def main():
                 curses = General.parse_curse_image(curse_images, keys)
                 if curses != [0, 0, 0]:
                     General.select_curse(window, curses)
+                    time.sleep(2.5)
+                    while General.resource_completion_detect(window):
+                        time.sleep(1.5)
+                        General.resource_completion_click(window)
                 else:
                     print("Baidu ocr failed!", file=f)
                     sys.exit()
@@ -78,8 +82,8 @@ def main():
 
             if General.start_floor_detect(window):
                 # General.map_page_detect(window)  # thread
-                while General.resource_completion_detect(window):
-                    time.sleep(1)
+                # while General.resource_completion_detect(window):
+                #     time.sleep(1)
                 General.map_management(window)
                 General.toggle_auto_path_finding(window)
                 General.map_page_detect(window)

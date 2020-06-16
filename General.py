@@ -18,7 +18,7 @@ import smtplib
 from datetime import datetime
 from email.mime.text import MIMEText
 
-# version 1.8.1, By Signal
+# version 1.8.2, By Signal
 
 
 class MapTile:
@@ -871,6 +871,7 @@ def click_continue(window):
                                                window[1] + battle_end1_diff[1],
                                                window[0] + battle_end1_diff[2],
                                                window[1] + battle_end1_diff[3]))
+        time.sleep(0.1)
         battle_end1_img.save('battle_end1.jpg', 'JPEG')
 
         battle_end2_diff = [1232 - 245, 851 - 123, 1401 - 245, 926 - 123]
@@ -1062,11 +1063,16 @@ def void_island_grind(window):
                 while confirm_detect(window):
                     # print('network turbulence, confirm button detected')  # Remove
                     time.sleep(1)
+                while resource_completion_detect(window):
+                    # print('resource task completed')  # Remove
+                    time.sleep(2)
+                    if resource_completion_detect(window):
+                        resource_completion_click(window)
+                    # print('resource task completed')  # Remove
+                    time.sleep(1)
                 if start_floor_detect(window):
                     # print('start floor detected')  # Remove
-                    while resource_completion_detect(window):
-                        # print('resource task completed')  # Remove
-                        time.sleep(1)
+
                     void_map_management(window)
                     # print('map management completed')  # Remove
                     if not auto_route_detect(window):
@@ -1124,7 +1130,9 @@ def void_island_grind(window):
                 time.sleep(1)
             while resource_completion_detect(window):
                 # print('resource task completed')  # Remove
-                time.sleep(1)
+                time.sleep(2)
+                if resource_completion_detect(window):
+                    resource_completion_click(window)
             if start_floor_detect(window):
                 # print('start floor detected')  # Remove
                 void_map_management(window)
@@ -1175,8 +1183,8 @@ def void_island_grind(window):
     pass
 
 
-def resource_completion_detect(window, count=0):
-    time.sleep(2)
+def resource_completion_detect(window):
+    time.sleep(0.5)
     first_track_diff = [729-245, 716-123, 794-245, 782-123]  # fail
     second_track_diff = [449-245, 716-123, 514-245, 782-123]  # success
     first_track_img = ImageGrab.grab(bbox=(window[0] + first_track_diff[0], window[1] + first_track_diff[1],
@@ -1189,11 +1197,16 @@ def resource_completion_detect(window, count=0):
     im1_hash_ref = imagehash.average_hash(Image.open('Ref\\first_track_img_ref.jpg'))
     im2_hash = imagehash.average_hash(Image.open('second_track_img.jpg'))
     im2_hash_ref = imagehash.average_hash(Image.open('Ref\\second_track_img_ref.jpg'))
-    if abs(im1_hash - im1_hash_ref) <= 8 or abs(im2_hash - im2_hash_ref) <= 8:
-        pyautogui.click(window[0] + window[2] // 2, window[1] + window[3] // 8 * 7, duration=0.3)
+    if abs(im1_hash - im1_hash_ref) <= 9 or abs(im2_hash - im2_hash_ref) <= 9:
+        # pyautogui.click(window[0] + window[2] // 2, window[1] + window[3] // 8 * 7, duration=0.3)
         return True
     else:
         return False
+
+
+def resource_completion_click(window):
+    time.sleep(0.5)
+    pyautogui.click(window[0] + window[2] // 2, window[1] + window[3] // 8 * 7, duration=0.3)
 
 
 def start_floor_detect(window):
