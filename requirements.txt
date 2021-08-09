@@ -19,7 +19,7 @@ PyRect==0.1.4
 PyScreeze==0.1.26
 PyTweening==1.0.3
 PyWavelets==1.1.1
-pywin32==227
+pywin32==301
 pywin32-ctypes==0.2.0
 requests==2.23.0
 scikit-learn==0.22.2.post1
